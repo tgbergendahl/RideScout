@@ -1,97 +1,82 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/router';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 
 
-const ProfilePage = () => {
-  const [friends, setFriends] = React.useState([]);
-  const [rideHistory, setRideHistory] = React.useState([]);
+const SignupPage = () => {
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
 
-  // Fetch friends data
-  const fetchFriends = async () => {
-    try {
-      // Fetch friends data from your API or database
-      const response = await fetch('API_URL/friends');
-      const data = await response.json();
-      setFriends(data.friends);
-    } catch (error) {
-      console.error('Error fetching friends:', error);
-    }
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
   };
 
 
-  // Fetch ride history data
-  const fetchRideHistory = async () => {
-    try {
-      // Fetch ride history data from your API or database
-      const response = await fetch('API_URL/ride-history');
-      const data = await response.json();
-      setRideHistory(data.rideHistory);
-    } catch (error) {
-      console.error('Error fetching ride history:', error);
-    }
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
   };
 
 
-  // Call the fetchFriends and fetchRideHistory functions when the component mounts
-  React.useEffect(() => {
-    fetchFriends();
-    fetchRideHistory();
-  }, []);
+  const handleConfirmPasswordChange = (e) => {
+    setConfirmPassword(e.target.value);
+  };
+
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+
+    try {
+      const auth = getAuth();
+      await createUserWithEmailAndPassword(auth, username, password);
+      // Redirect to login page after successful signup
+      router.push('/login');
+    } catch (error) {
+      console.error('Error signing up:', error);
+    }
+  };
 
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', textAlign: 'center' }}>
-      <header style={{ padding: '1rem 0', backgroundColor: '#007BFF', color: '#FFFFFF' }}>
-        <img src="/images/logo.png" alt="RideScout" style={{ width: '400px', height: '100px', margin: '2rem 0' }} />
+      <header>
+        <h1 style={{ color: '#007BFF', fontSize: '2.5rem', margin: '2rem 0' }}>Signup Page</h1>
       </header>
       <main>
-        <section>
-          <h2>Friends & Connections</h2>
+        <h2 style={{ fontSize: '1.5rem', margin: '1.5rem 0' }}>Create an Account</h2>
+        <form onSubmit={handleSignup}>
           <div>
-            {friends.map((friend) => (
-              <div key={friend.id}>
-                <h3>{friend.name}</h3>
-                <p>{friend.bio}</p>
-              </div>
-            ))}
+            <label htmlFor="username">Username:</label>
+            <input type="text" id="username" name="username" value={username} onChange={handleUsernameChange} />
           </div>
-        </section>
-        <section>
-          <h2>Ride History</h2>
           <div>
-            {rideHistory.map((ride) => (
-              <div key={ride.id}>
-                <h3>{ride.title}</h3>
-                <p>Date: {ride.date}</p>
-                <p>Distance: {ride.distance}</p>
-              </div>
-            ))}
+            <label htmlFor="password">Password:</label>
+            <input type="password" id="password" name="password" value={password} onChange={handlePasswordChange} />
           </div>
-        </section>
-        <section>
-          <h2>Settings</h2>
           <div>
-            <Link href="/settings" passHref>
-              <button style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-                <img src="gearLogo.png" alt="Settings" width="50" height="50" />
-              </button>
-            </Link>
+            <label htmlFor="confirmPassword">Confirm Password:</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={confirmPassword}
+              onChange={handleConfirmPasswordChange}
+            />
           </div>
-        </section>
-        <section>
-          <h2>Account Options</h2>
-          <div>
-            <Link href="/signup" passHref>
-              <button style={{ border: 'none', background: '#007BFF', color: '#FFFFFF', padding: '10px 20px', margin: '5px', cursor: 'pointer', borderRadius: '5px' }}>Create an Account</button>
-            </Link>
-            <Link href="/login" passHref>
-              <button style={{ border: 'none', background: '#007BFF', color: '#FFFFFF', padding: '10px 20px', margin: '5px', cursor: 'pointer', borderRadius: '5px' }}>Login</button>
-            </Link>
-          </div>
-        </section>
+          <button type="submit">Submit</button>
+        </form>
       </main>
-      <footer style={{ marginTop: '2rem', backgroundColor: '#007BFF', color: '#FFFFFF', padding: '1rem 0', position: 'sticky', bottom: '0', width: '100%', zIndex: '1' }}>
+      <footer style={{ marginTop: '2rem' }}>
       <nav>
           <ul style={{ display: 'flex', justifyContent: 'center', listStyle: 'none' }}>
             <li style={{ margin: '0 10px' }}>
@@ -144,4 +129,4 @@ const ProfilePage = () => {
 
 
 
-export default ProfilePage;
+export default SignupPage;
