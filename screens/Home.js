@@ -1,14 +1,14 @@
-// screens/HogHub.js
+// screens/Home.js
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 
-const HogHub = ({ navigation }) => {
+const Home = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      <Text>HogHub Screen</Text>
+      <Text>Home Screen</Text>
       <Button
-        title="Create Hog"
-        onPress={() => navigation.navigate('CreateHog')}
+        title="Create Post"
+        onPress={() => navigation.navigate('CreatePost')}
       />
     </View>
   );
@@ -22,4 +22,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HogHub;
+export default Home;

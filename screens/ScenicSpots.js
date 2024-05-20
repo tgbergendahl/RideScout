@@ -1,11 +1,11 @@
-// screens/LoginPage.js
+// screens/ScenicSpots.js
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const LoginPage = () => {
+const ScenicSpots = () => {
   return (
     <View style={styles.container}>
-      <Text>Login Page</Text>
+      <Text>Scenic Spots Screen</Text>
     </View>
   );
 };
@@ -18,4 +18,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginPage;
+export default ScenicSpots;
