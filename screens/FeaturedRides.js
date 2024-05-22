@@ -1,54 +1,59 @@
 // screens/FeaturedRides.js
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 const FeaturedRides = () => {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPosts(postsData);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const renderItem = ({ item }) => (
+    <View style={styles.post}>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text>{item.content}</Text>
+      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.media} />
-        <Text style={styles.text}>Peep this video of my red bike during a red sunset!! #reddynornot</Text>
-        <Text style={styles.subText}>3 million riders like this</Text>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.media} />
-        <Text style={styles.text}>So are you guys posting bikes on hoghub?</Text>
-        <Text style={styles.subText}>1 million comments</Text>
-      </View>
-      <View style={styles.card}>
-        <View style={styles.media} />
-        <Text style={styles.text}>Sunrise view from my Kawasaki at 4am #homeless</Text>
-        <Text style={styles.subText}>1 million people shared this</Text>
-      </View>
-    </ScrollView>
+    <FlatList
+      data={posts}
+      renderItem={renderItem}
+      keyExtractor={item => item.id}
+      contentContainerStyle={styles.container}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
+    padding: 16,
   },
-  card: {
+  post: {
+    marginBottom: 16,
+    padding: 16,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 10,
+    borderRadius: 8,
   },
-  media: {
-    height: 150,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
-  text: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  subText: {
-    marginTop: 5,
-    fontSize: 14,
-    color: 'gray',
+  image: {
+    width: '100%',
+    height: 200,
+    marginTop: 8,
   },
 });
 

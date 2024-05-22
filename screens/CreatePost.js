@@ -1,8 +1,8 @@
 // screens/CreatePost.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Image } from 'react-native';
 import { auth, db, storage } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { addDoc, collection } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
@@ -10,9 +10,8 @@ const CreatePost = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleImageUpload = async () => {
+  const handleImagePick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -21,36 +20,38 @@ const CreatePost = ({ navigation }) => {
     });
 
     if (!result.cancelled) {
-      const blob = await (await fetch(result.uri)).blob();
-      const storageRef = ref(storage, `posts/${new Date().toISOString()}`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
-      setImage(url);
+      setImage(result.uri);
     }
   };
 
   const handleSubmit = async () => {
     if (!title || !content) {
-      Alert.alert("Error", "Title and content are required.");
+      alert('Please fill in all fields');
       return;
     }
-    
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'posts'), {
-        userId: auth.currentUser.uid,
-        title,
-        content,
-        image,
-        createdAt: new Date(),
-      });
-      navigation.goBack();
-    } catch (error) {
-      console.error("Error adding document: ", error);
-      Alert.alert("Error", "Failed to create post. Please try again.");
-    } finally {
-      setLoading(false);
+
+    let imageUrl = '';
+    if (image) {
+      const response = await fetch(image);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `posts/${auth.currentUser.uid}/${Date.now()}`);
+      await uploadBytes(storageRef, blob);
+      imageUrl = await getDownloadURL(storageRef);
     }
+
+    await addDoc(collection(db, 'posts'), {
+      userID: auth.currentUser.uid,
+      title,
+      content,
+      image: imageUrl,
+      createdAt: new Date(),
+    });
+
+    setTitle('');
+    setContent('');
+    setImage(null);
+
+    navigation.navigate('Home');
   };
 
   return (
@@ -62,15 +63,15 @@ const CreatePost = ({ navigation }) => {
         onChangeText={setTitle}
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, styles.content]}
         placeholder="Content"
         value={content}
         onChangeText={setContent}
         multiline
       />
       {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Upload Image" onPress={handleImageUpload} />
-      <Button title="Create Post" onPress={handleSubmit} disabled={loading} />
+      <Button title="Pick an image" onPress={handleImagePick} />
+      <Button title="Create Post" onPress={handleSubmit} />
     </View>
   );
 };
@@ -79,6 +80,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#fff',
   },
   input: {
     height: 40,
@@ -87,10 +89,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 8,
   },
+  content: {
+    height: 100,
+  },
   image: {
     width: '100%',
     height: 200,
-    marginVertical: 12,
+    marginBottom: 12,
   },
 });
 
