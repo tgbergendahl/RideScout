@@ -1,35 +1,117 @@
 // screens/Profile.js
-import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Button, Image, TextInput } from 'react-native';
+import { auth, db, storage } from '../firebase';
+import { signOut } from 'firebase/auth';
+import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import * as ImagePicker from 'expo-image-picker';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 const Profile = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+  const [profilePic, setProfilePic] = useState(null);
+  const [bio, setBio] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [following, setFollowing] = useState([]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userDoc.exists()) {
+        setUser(userDoc.data());
+        setProfilePic(userDoc.data().profilePic);
+        setBio(userDoc.data().bio);
+        setFollowing(userDoc.data().following || []);
+      }
+    };
+
+    const checkAdmin = async () => {
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      if (adminDoc.exists()) {
+        setIsAdmin(true);
+      }
+    };
+
+    fetchUserData();
+    checkAdmin();
+  }, []);
+
+  const handleSignOut = () => {
+    signOut(auth).then(() => {
+      navigation.navigate('LoginPage');
+    });
+  };
+
+  const handleProfilePicUpload = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.cancelled) {
+      const blob = await (await fetch(result.uri)).blob();
+      const storageRef = ref(storage, `profilePics/${auth.currentUser.uid}`);
+      await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(storageRef);
+
+      await setDoc(doc(db, 'users', auth.currentUser.uid), {
+        profilePic: url,
+      }, { merge: true });
+
+      setProfilePic(url);
+    }
+  };
+
+  const handleSaveBio = async () => {
+    await setDoc(doc(db, 'users', auth.currentUser.uid), {
+      bio,
+    }, { merge: true });
+  };
+
+  const handleFollow = async (targetUserId) => {
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      let followingList = userDoc.data().following || [];
+
+      if (followingList.includes(targetUserId)) {
+        followingList = followingList.filter(id => id !== targetUserId);
+      } else {
+        followingList.push(targetUserId);
+      }
+
+      await setDoc(userRef, { following: followingList }, { merge: true });
+      setFollowing(followingList);
+    }
+  };
+
+  if (!user) {
+    return <Text>Loading...</Text>;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.profile}>
-        <View style={styles.avatar} />
-        <Text style={styles.username}>BackwardzCap33</Text>
-        <Text style={styles.bio}>Just a guy looking for cool spots to take my bike.</Text>
+        {profilePic ? (
+          <Image source={{ uri: profilePic }} style={styles.avatar} />
+        ) : (
+          <Button title="Upload Profile Picture" onPress={handleProfilePicUpload} />
+        )}
+        <Text style={styles.username}>{auth.currentUser.email}</Text>
+        <TextInput
+          style={styles.bio}
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Add a bio"
+        />
+        <Button title="Save Bio" onPress={handleSaveBio} />
+        <Button title="Sign Out" onPress={handleSignOut} />
       </View>
-      <Button
-        title="Challenges"
-        onPress={() => navigation.navigate('ChallengesPage')}
-      />
-      <Button
-        title="Login"
-        onPress={() => navigation.navigate('LoginPage')}
-      />
-      <Button
-        title="Sign Up"
-        onPress={() => navigation.navigate('SignupPage')}
-      />
-      <View style={styles.post}>
-        <View style={styles.media} />
-        <Text style={styles.text}>A picture of my ride</Text>
-      </View>
-      <View style={styles.post}>
-        <Text style={styles.text}>I've got a question for Suzuki guys, I can't start my bike while it's in 1st gear...</Text>
-        <Text style={styles.subText}>#suzuki #suzukimaintenance #newrider #nohelmetgang #boozysuzi #newuser</Text>
-      </View>
+      {isAdmin && <Text style={styles.adminText}>Admin</Text>}
+      <Button title="Follow User" onPress={() => handleFollow('targetUserId')} />
     </View>
   );
 };
@@ -45,10 +127,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#ccc',
-    borderRadius: 40,
   },
   username: {
     marginTop: 10,
@@ -56,31 +138,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   bio: {
-    marginTop: 5,
-    fontSize: 14,
-    color: 'gray',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  post: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 10,
-  },
-  media: {
-    height: 150,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
-  },
-  text: {
     marginTop: 10,
-    fontSize: 16,
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    width: '80%',
   },
-  subText: {
-    marginTop: 5,
-    fontSize: 14,
-    color: 'gray',
+  adminText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: 'red',
+    fontWeight: 'bold',
   },
 });
 
