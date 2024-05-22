@@ -1,9 +1,9 @@
 // screens/Profile.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Button, Image, TextInput, FlatList, ActivityIndicator } from 'react-native';
 import { auth, db, storage } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, onSnapshot, setDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
@@ -12,28 +12,55 @@ const Profile = ({ navigation }) => {
   const [profilePic, setProfilePic] = useState(null);
   const [bio, setBio] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState([]);
   const [following, setFollowing] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-      if (userDoc.exists()) {
-        setUser(userDoc.data());
-        setProfilePic(userDoc.data().profilePic);
-        setBio(userDoc.data().bio);
-        setFollowing(userDoc.data().following || []);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (userDoc.exists()) {
+          setUser(userDoc.data());
+          setProfilePic(userDoc.data().profilePic);
+          setBio(userDoc.data().bio);
+          setFollowing(userDoc.data().following || []);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     const checkAdmin = async () => {
-      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
-      if (adminDoc.exists()) {
-        setIsAdmin(true);
+      try {
+        const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+        if (adminDoc.exists()) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
       }
+    };
+
+    const fetchUserPosts = () => {
+      const q = query(collection(db, 'posts'), where('userId', '==', auth.currentUser.uid));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const postsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        setPosts(postsData);
+      });
+
+      return unsubscribe;
     };
 
     fetchUserData();
     checkAdmin();
+    const unsubscribe = fetchUserPosts();
+
+    return () => unsubscribe();
   }, []);
 
   const handleSignOut = () => {
@@ -88,8 +115,29 @@ const Profile = ({ navigation }) => {
     }
   };
 
+  const renderItem = ({ item }) => (
+    <View style={styles.post}>
+      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text style={styles.title}>{item.title}</Text>
+      <Text>{item.content}</Text>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   if (!user) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.container}>
+        <Text>No user data found</Text>
+        <Button title="Sign Out" onPress={handleSignOut} />
+      </View>
+    );
   }
 
   return (
@@ -111,7 +159,12 @@ const Profile = ({ navigation }) => {
         <Button title="Sign Out" onPress={handleSignOut} />
       </View>
       {isAdmin && <Text style={styles.adminText}>Admin</Text>}
-      <Button title="Follow User" onPress={() => handleFollow('targetUserId')} />
+      <FlatList
+        data={posts}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.postsContainer}
+      />
     </View>
   );
 };
@@ -121,6 +174,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f0f0f0',
     padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profile: {
     alignItems: 'center',
@@ -150,6 +205,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'red',
     fontWeight: 'bold',
+  },
+  postsContainer: {
+    paddingVertical: 10,
+  },
+  post: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 10,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
 });
 

@@ -1,45 +1,43 @@
 // screens/Home.js
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-const Home = ({ navigation }) => {
+const Home = () => {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'posts'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setPosts(postsData);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const renderItem = ({ item }) => (
+    <View style={styles.post}>
+      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text style={styles.title}>{item.title}</Text>
+      <Text>{item.content}</Text>
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Search"
-      />
-      <Button
-        title="Create Post"
-        onPress={() => navigation.navigate('CreatePost')}
-      />
-      <View style={styles.post}>
-        <View style={styles.media} />
-        <Text style={styles.text}>Peep this video of my red bike during a red sunset!! #reddynornot</Text>
-        <Text style={styles.subText}>3 million riders like this</Text>
-      </View>
-      <View style={styles.post}>
-        <View style={styles.media} />
-        <Text style={styles.text}>Sunrise view from my Kawasaki at 4am #homeless</Text>
-        <Text style={styles.subText}>1 million people shared this</Text>
-      </View>
-    </ScrollView>
+    <FlatList
+      data={posts}
+      renderItem={renderItem}
+      keyExtractor={item => item.id}
+      contentContainerStyle={styles.container}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
     padding: 10,
-  },
-  searchBar: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginBottom: 10,
   },
   post: {
     backgroundColor: '#fff',
@@ -47,19 +45,15 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 10,
   },
-  media: {
-    height: 150,
-    backgroundColor: '#ccc',
+  image: {
+    width: '100%',
+    height: 200,
     borderRadius: 10,
   },
-  text: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  subText: {
-    marginTop: 5,
-    fontSize: 14,
-    color: 'gray',
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
 });
 
