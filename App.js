@@ -7,7 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Import your screens
 import FeaturedRides from './screens/FeaturedRides';
 import HogHub from './screens/HogHub';
-import Home from './screens/Home';
+import Home from './screens/HomeScreen';
 import Profile from './screens/Profile';
 import ScenicSpots from './screens/ScenicSpots';
 import ChallengesPage from './screens/ChallengesPage';

@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, Image, TextInput, FlatList, ActivityIndicator } from 'react-native';
 import { auth, db, storage } from '../firebase';
-import { signOut } from 'firebase/auth';
-import { collection, doc, getDoc, query, where, onSnapshot, setDoc } from 'firebase/firestore';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, query, where, onSnapshot, setDoc, getDocs } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
@@ -11,57 +11,62 @@ const Profile = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
   const [bio, setBio] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [following, setFollowing] = useState([]);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data());
-          setProfilePic(userDoc.data().profilePic);
-          setBio(userDoc.data().bio);
-          setFollowing(userDoc.data().following || []);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        fetchUserData(currentUser.uid);
+        const unsubscribePosts = fetchUserPosts(currentUser.uid);
+        return () => {
+          unsubscribePosts();
+        };
+      } else {
         setLoading(false);
+        setUser(null);
       }
-    };
+    });
 
-    const checkAdmin = async () => {
-      try {
-        const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
-        if (adminDoc.exists()) {
-          setIsAdmin(true);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-
-    const fetchUserPosts = () => {
-      const q = query(collection(db, 'posts'), where('userId', '==', auth.currentUser.uid));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const postsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        setPosts(postsData);
-      });
-
-      return unsubscribe;
-    };
-
-    fetchUserData();
-    checkAdmin();
-    const unsubscribe = fetchUserPosts();
-
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
+
+  const fetchUserData = async (uid) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUser(userData);
+        setProfilePic(userData.profilePic || null);
+        setBio(userData.bio || '');
+        setFollowing(userData.following || []);
+
+        // Fetch followers count
+        const followersQuery = query(collection(db, 'users'), where('following', 'array-contains', uid));
+        const followersSnapshot = await getDocs(followersQuery);
+        setFollowersCount(followersSnapshot.size);
+      } else {
+        setUser({}); // Empty user object if no data exists
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserPosts = (uid) => {
+    const q = query(collection(db, 'posts'), where('userID', '==', uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setPosts(postsData);
+    });
+
+    return unsubscribe;
+  };
 
   const handleSignOut = () => {
     signOut(auth).then(() => {
@@ -97,24 +102,6 @@ const Profile = ({ navigation }) => {
     }, { merge: true });
   };
 
-  const handleFollow = async (targetUserId) => {
-    const userRef = doc(db, 'users', auth.currentUser.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (userDoc.exists()) {
-      let followingList = userDoc.data().following || [];
-
-      if (followingList.includes(targetUserId)) {
-        followingList = followingList.filter(id => id !== targetUserId);
-      } else {
-        followingList.push(targetUserId);
-      }
-
-      await setDoc(userRef, { following: followingList }, { merge: true });
-      setFollowing(followingList);
-    }
-  };
-
   const renderItem = ({ item }) => (
     <View style={styles.post}>
       {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
@@ -131,11 +118,11 @@ const Profile = ({ navigation }) => {
     );
   }
 
-  if (!user) {
+  if (!auth.currentUser) {
     return (
       <View style={styles.container}>
-        <Text>No user data found</Text>
-        <Button title="Sign Out" onPress={handleSignOut} />
+        <Text>No user is logged in</Text>
+        <Button title="Go to Login" onPress={() => navigation.navigate('LoginPage')} />
       </View>
     );
   }
@@ -146,24 +133,35 @@ const Profile = ({ navigation }) => {
         {profilePic ? (
           <Image source={{ uri: profilePic }} style={styles.avatar} />
         ) : (
-          <Button title="Upload Profile Picture" onPress={handleProfilePicUpload} />
+          <View style={styles.avatarPlaceholder}>
+            <Text>No Profile Picture</Text>
+          </View>
         )}
         <Text style={styles.username}>{auth.currentUser.email}</Text>
-        <TextInput
-          style={styles.bio}
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Add a bio"
-        />
-        <Button title="Save Bio" onPress={handleSaveBio} />
+        <Text>{followersCount} followers</Text>
+        {isEditing ? (
+          <>
+            <TextInput
+              style={styles.bio}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Add a bio"
+            />
+            <Button title="Save Bio" onPress={handleSaveBio} />
+            <Button title="Upload Profile Picture" onPress={handleProfilePicUpload} />
+          </>
+        ) : (
+          <Text style={styles.bioText}>{bio || 'No bio available'}</Text>
+        )}
+        <Button title={isEditing ? "View Profile" : "Edit Profile"} onPress={() => setIsEditing(!isEditing)} />
         <Button title="Sign Out" onPress={handleSignOut} />
       </View>
-      {isAdmin && <Text style={styles.adminText}>Admin</Text>}
       <FlatList
         data={posts}
         renderItem={renderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.postsContainer}
+        ListEmptyComponent={<Text>No posts yet</Text>}
       />
     </View>
   );
@@ -187,6 +185,14 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: '#ccc',
   },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   username: {
     marginTop: 10,
     fontSize: 18,
@@ -200,11 +206,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     width: '80%',
   },
-  adminText: {
-    marginTop: 20,
+  bioText: {
+    marginTop: 10,
     fontSize: 16,
-    color: 'red',
-    fontWeight: 'bold',
   },
   postsContainer: {
     paddingVertical: 10,
