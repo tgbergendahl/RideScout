@@ -1,25 +1,28 @@
 // screens/SignupPage.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
-import { auth } from '../firebase';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const SignupPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignUp = () => {
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        console.log('Signed up with:', user.email);
-        navigation.navigate('LoginPage'); // Navigate to Login on successful signup
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error(errorCode, errorMessage);
+  const handleSignup = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        following: [],
+        profilePic: '',
+        bio: '',
       });
+      navigation.navigate('LoginPage');
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -28,20 +31,16 @@ const SignupPage = ({ navigation }) => {
         style={styles.input}
         placeholder="Email"
         value={email}
-        onChangeText={(text) => setEmail(text)}
-        keyboardType="email-address"
+        onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
         value={password}
-        onChangeText={(text) => setPassword(text)}
+        onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Sign Up" onPress={handleSignUp} />
-      <Text onPress={() => navigation.navigate('LoginPage')} style={styles.link}>
-        Already have an account? Log In
-      </Text>
+      <Button title="Sign Up" onPress={handleSignup} />
     </View>
   );
 };
@@ -58,11 +57,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
     paddingHorizontal: 8,
-  },
-  link: {
-    marginTop: 20,
-    color: 'blue',
-    textAlign: 'center',
   },
 });
 

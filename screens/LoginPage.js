@@ -1,6 +1,6 @@
 // screens/LoginPage.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Image } from 'react-native';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -8,40 +8,33 @@ const LoginPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        console.log('Logged in with:', user.email);
-        navigation.navigate('Profile'); // Navigate to Profile on successful login
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error(errorCode, errorMessage);
-      });
+  const handleLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigation.navigate('MainTabs');
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (
     <View style={styles.container}>
+      <Image source={require('../assets/Ride scout (2).jpg')} style={styles.logo} />
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
-        onChangeText={(text) => setEmail(text)}
-        keyboardType="email-address"
+        onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
         value={password}
-        onChangeText={(text) => setPassword(text)}
+        onChangeText={setPassword}
         secureTextEntry
       />
       <Button title="Login" onPress={handleLogin} />
-      <Text onPress={() => navigation.navigate('SignupPage')} style={styles.link}>
-        Don't have an account? Sign Up
-      </Text>
+      <Button title="Sign Up" onPress={() => navigation.navigate('SignupPage')} />
     </View>
   );
 };
@@ -51,6 +44,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
+    backgroundColor: '#ffffff', // Set the background to white
+  },
+  logo: {
+    width: 200,  // Adjust the width to your preference
+    height: 200, // Adjust the height to your preference
+    marginBottom: 16,
+    alignSelf: 'center',
   },
   input: {
     height: 40,
@@ -58,11 +58,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
     paddingHorizontal: 8,
-  },
-  link: {
-    marginTop: 20,
-    color: 'blue',
-    textAlign: 'center',
   },
 });
 

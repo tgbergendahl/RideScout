@@ -39,7 +39,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleSignOut = () => {
     signOut(auth).then(() => {
-      navigation.navigate('Login');
+      navigation.navigate('LoginPage');
     });
   };
 

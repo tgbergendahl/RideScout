@@ -1,28 +1,27 @@
 // screens/HogHub.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, Image } from 'react-native';
-import { db, storage, auth } from '../firebase';
-import { addDoc, collection, query, onSnapshot, where } from 'firebase/firestore';
+import { View, Text, FlatList, StyleSheet, Button, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { auth, db, storage } from '../firebase';
+import { collection, addDoc, onSnapshot, query, where, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 const HogHub = () => {
-  const [items, setItems] = useState([]);
-  const [search, setSearch] = useState('');
-  const [filteredItems, setFilteredItems] = useState([]);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'hogs'));
+    const q = query(collection(db, 'hoghub'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const itemsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItems(itemsData);
-      setFilteredItems(itemsData);
+      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPosts(postsData);
+      setLoading(false);
     });
 
     return unsubscribe;
@@ -34,79 +33,80 @@ const HogHub = () => {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
+      allowsMultipleSelection: true, // Allow multiple images
     });
 
     if (!result.cancelled) {
-      setImage(result.uri);
+      const selectedImages = result.assets.map(asset => asset.uri);
+      setImages([...images, ...selectedImages]);
     }
   };
 
   const handleSubmit = async () => {
-    if (!title || !description || !price || !location || !zipCode) {
-      alert('Please fill in all fields');
+    if (!title || !price || !description || !location || !zipCode || images.length === 0) {
+      alert('Please fill in all fields and add at least one image');
       return;
     }
 
-    let imageUrl = '';
-    if (image) {
+    const imageUrls = [];
+    for (let image of images) {
       const response = await fetch(image);
       const blob = await response.blob();
-      const storageRef = ref(storage, `hogs/${auth.currentUser.uid}/${Date.now()}`);
+      const storageRef = ref(storage, `hoghub/${auth.currentUser.uid}/${Date.now()}`);
       await uploadBytes(storageRef, blob);
-      imageUrl = await getDownloadURL(storageRef);
+      const url = await getDownloadURL(storageRef);
+      imageUrls.push(url);
     }
 
-    await addDoc(collection(db, 'hogs'), {
+    await addDoc(collection(db, 'hoghub'), {
       userID: auth.currentUser.uid,
       title,
-      description,
       price,
+      description,
       location,
       zipCode,
-      image: imageUrl,
+      images: imageUrls,
       createdAt: new Date(),
     });
 
     setTitle('');
-    setDescription('');
     setPrice('');
+    setDescription('');
     setLocation('');
     setZipCode('');
-    setImage(null);
+    setImages([]);
   };
 
-  useEffect(() => {
-    if (search) {
-      setFilteredItems(items.filter(item => item.title.toLowerCase().includes(search.toLowerCase())));
-    } else {
-      setFilteredItems(items);
-    }
-  }, [search, items]);
+  const handleDelete = async (postId) => {
+    await deleteDoc(doc(db, 'hoghub', postId));
+  };
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
       <Text style={styles.title}>{item.title}</Text>
-      <Text>{item.description}</Text>
       <Text>Price: {item.price}</Text>
-      <Text>Location: {item.location}</Text>
-      <Text>Zip Code: {item.zipCode}</Text>
-      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text>{item.description}</Text>
+      <Text>Location: {item.location}, {item.zipCode}</Text>
+      <FlatList
+        data={item.images}
+        horizontal
+        renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
+        keyExtractor={(item, index) => index.toString()}
+      />
+      <Button title="Delete Post" onPress={() => handleDelete(item.id)} />
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Search"
-        value={search}
-        onChangeText={setSearch}
-      />
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-      />
       <TextInput
         style={styles.input}
         placeholder="Title"
@@ -115,15 +115,15 @@ const HogHub = () => {
       />
       <TextInput
         style={styles.input}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-      />
-      <TextInput
-        style={styles.input}
         placeholder="Price"
         value={price}
         onChangeText={setPrice}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
       />
       <TextInput
         style={styles.input}
@@ -137,9 +137,22 @@ const HogHub = () => {
         value={zipCode}
         onChangeText={setZipCode}
       />
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Pick an image" onPress={handleImagePick} />
-      <Button title="Post Hog" onPress={handleSubmit} />
+      {images.length > 0 && (
+        <FlatList
+          data={images}
+          horizontal
+          renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
+          keyExtractor={(item, index) => index.toString()}
+        />
+      )}
+      <Button title="Pick Images" onPress={handleImagePick} />
+      <Button title="Submit" onPress={handleSubmit} />
+      <FlatList
+        data={posts}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        ListEmptyComponent={<Text>No posts yet</Text>}
+      />
     </View>
   );
 };
@@ -169,9 +182,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   image: {
-    width: '100%',
-    height: 200,
-    marginTop: 8,
+    width: 100,
+    height: 100,
+    marginRight: 8,
   },
 });
 

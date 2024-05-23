@@ -1,68 +1,70 @@
 // screens/HomeScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Button, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, Button, Image } from 'react-native';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
-  const [following, setFollowing] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    if (auth.currentUser) {
-      const unsubscribe = onSnapshot(doc(db, 'users', auth.currentUser.uid), (doc) => {
-        if (doc.exists()) {
-          setFollowing(doc.data().following || []);
-        }
-      });
+    const fetchPosts = async () => {
+      if (!auth.currentUser) return;
 
-      return () => unsubscribe();
-    } else {
-      setLoading(false);
-    }
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const following = userData.following || [];
+
+        if (following.length === 0) {
+          setPosts([]);
+          return;
+        }
+
+        const postsRef = collection(db, 'posts');
+        const q = query(postsRef, where('userID', 'in', following));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedPosts = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setPosts(fetchedPosts);
+        });
+
+        return unsubscribe;
+      }
+    };
+
+    const unsubscribe = fetchPosts();
+    return () => unsubscribe && unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (auth.currentUser && following.length > 0) {
-      const q = query(collection(db, 'posts'), where('userID', 'in', following));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPosts(postsData);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } else {
-      setLoading(false);
-    }
-  }, [following]);
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  const renderItem = ({ item }) => (
+  const renderPost = ({ item }) => (
     <View style={styles.post}>
-      <Text style={styles.title}>{item.title}</Text>
+      {item.image && <Image source={{ uri: item.image }} style={styles.postImage} />}
+      <Text style={styles.postTitle}>{item.title}</Text>
       <Text>{item.content}</Text>
-      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text>Posted by: {item.userID}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Button title="Create Post" onPress={() => navigation.navigate('CreatePostTab')} />
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListEmptyComponent={<Text>Nothing on your feed right now, follow accounts to see what's happening!</Text>}
-      />
+      <Button title="Create Post" onPress={() => navigation.navigate('CreatePost')} />
+      {posts.length === 0 ? (
+        <Text>Nothing on your feed right now, follow accounts to see what's happening!</Text>
+      ) : (
+        <FlatList
+          data={posts}
+          renderItem={renderPost}
+          keyExtractor={(item) => item.id}
+        />
+      )}
     </View>
   );
 };
@@ -76,18 +78,19 @@ const styles = StyleSheet.create({
   post: {
     marginBottom: 16,
     padding: 16,
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 8,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  image: {
+  postImage: {
     width: '100%',
     height: 200,
-    marginTop: 8,
+    marginBottom: 8,
+  },
+  postTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
 });
 
