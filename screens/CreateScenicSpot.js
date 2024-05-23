@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const CreatePost = ({ navigation }) => {
+const CreateScenicSpot = ({ navigation }) => {
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -30,39 +30,39 @@ const CreatePost = ({ navigation }) => {
 
   const handleSubmit = async () => {
     const user = auth.currentUser;
-    if (user && title && content) {
+    if (user && user.email === 'jared@ridescout.net' && title && description) {
       setUploading(true);
-      let imageUrl = null;
 
+      let imageUrl = null;
       if (image) {
         const response = await fetch(image);
         const blob = await response.blob();
-        const storageRef = ref(storage, `postImages/${user.uid}/${Date.now()}`);
+        const storageRef = ref(storage, `scenicSpots/${user.uid}/${Date.now()}`);
         await uploadBytes(storageRef, blob);
         imageUrl = await getDownloadURL(storageRef);
       }
 
-      await addDoc(collection(db, 'RideScout/Data/Posts'), {
+      await addDoc(collection(db, 'RideScout/Data/ScenicSpots'), {
         userId: user.uid,
         title,
-        content,
+        description,
         imageUrl,
         likes: 0,
         createdAt: serverTimestamp(),
       });
 
-      setUploading(false);
       setTitle('');
-      setContent('');
+      setDescription('');
       setImage(null);
-      navigation.navigate('MainTabs');
+      setUploading(false);
+      navigation.navigate('ScenicSpots');
     } else {
-      Alert.alert('Error', 'Please fill in all fields');
+      alert('Please fill in all fields');
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Title"
@@ -71,23 +71,23 @@ const CreatePost = ({ navigation }) => {
       />
       <TextInput
         style={styles.input}
-        placeholder="Content"
-        value={content}
-        onChangeText={setContent}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
         multiline
       />
       {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Pick an Image" onPress={pickImage} />
-      <Button title="Create Post" onPress={handleSubmit} disabled={uploading} />
-      <Button title="Back" onPress={() => navigation.navigate('MainTabs')} />
-    </View>
+      <Button title="Upload Image" onPress={pickImage} />
+      <Button title="Create Scenic Spot" onPress={handleSubmit} disabled={uploading} />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
+    alignItems: 'center',
   },
   input: {
     width: '100%',
@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreatePost;
+export default CreateScenicSpot;

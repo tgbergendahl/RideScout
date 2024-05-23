@@ -1,59 +1,82 @@
-// screens/FeaturedRides.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
-import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { getFirestore, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
-const FeaturedRides = () => {
+const FeaturedRides = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
+  const db = getFirestore();
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const fetchFeaturedPosts = async () => {
+      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), orderBy('likes', 'desc'), limit(10));
+      const postsSnapshot = await getDocs(postsQuery);
+      const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(postsData);
-    });
-
-    return unsubscribe;
+    };
+    fetchFeaturedPosts();
   }, []);
 
   const renderItem = ({ item }) => (
     <View style={styles.post}>
       <Text style={styles.title}>{item.title}</Text>
-      <Text>{item.content}</Text>
-      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text style={styles.content}>{item.content}</Text>
+      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+      <Text>Likes: {item.likes}</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })}>
+        <Text style={styles.commentsLink}>View Comments</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
-    <FlatList
-      data={posts}
-      renderItem={renderItem}
-      keyExtractor={item => item.id}
-      contentContainerStyle={styles.container}
-    />
+    <View style={styles.container}>
+      {posts.length > 0 ? (
+        <FlatList
+          data={posts}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+        />
+      ) : (
+        <Text style={styles.noPosts}>No featured rides yet, stay tuned!</Text>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    flex: 1,
+    padding: 20,
   },
   post: {
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    marginBottom: 20,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+  },
+  content: {
+    marginTop: 10,
+    fontSize: 16,
   },
   image: {
-    width: '100%',
+    marginTop: 10,
     height: 200,
-    marginTop: 8,
+    width: '100%',
+    borderRadius: 10,
+  },
+  commentsLink: {
+    marginTop: 10,
+    color: 'blue',
+  },
+  noPosts: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 

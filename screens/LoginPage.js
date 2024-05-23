@@ -1,19 +1,23 @@
-// screens/LoginPage.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Image } from 'react-native';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { View, Text, TextInput, Button, StyleSheet, Image, Alert } from 'react-native';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 const LoginPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const auth = getAuth();
+
   const handleLogin = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.navigate('MainTabs');
-    } catch (error) {
-      alert(error.message);
+    if (email && password) {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        navigation.navigate('MainTabs'); // Navigate to MainTabs instead of HomeScreen
+      } catch (error) {
+        Alert.alert('Login Error', error.message);
+      }
+    } else {
+      Alert.alert('Error', 'Please enter both email and password.');
     }
   };
 
@@ -25,6 +29,8 @@ const LoginPage = ({ navigation }) => {
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
@@ -34,7 +40,12 @@ const LoginPage = ({ navigation }) => {
         secureTextEntry
       />
       <Button title="Login" onPress={handleLogin} />
-      <Button title="Sign Up" onPress={() => navigation.navigate('SignupPage')} />
+      <Text style={styles.signUpText}>
+        Don't have an account?{' '}
+        <Text style={styles.signUpLink} onPress={() => navigation.navigate('SignupPage')}>
+          Sign Up
+        </Text>
+      </Text>
     </View>
   );
 };
@@ -43,21 +54,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff', // Set the background to white
+    padding: 20,
+    backgroundColor: '#fff',
   },
   logo: {
-    width: 200,  // Adjust the width to your preference
-    height: 200, // Adjust the height to your preference
-    marginBottom: 16,
+    width: 200,
+    height: 200,
+    marginBottom: 40,
     alignSelf: 'center',
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    width: '100%',
+    padding: 10,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  signUpText: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  signUpLink: {
+    color: 'blue',
+    textDecorationLine: 'underline',
   },
 });
 

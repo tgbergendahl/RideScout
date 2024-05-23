@@ -1,112 +1,93 @@
-// screens/Profile.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Image, TextInput, FlatList } from 'react-native';
+import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
-import * as ImagePicker from 'expo-image-picker';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const ProfileScreen = ({ navigation }) => {
+const Profile = ({ navigation }) => {
   const [user, setUser] = useState(null);
-  const [profilePic, setProfilePic] = useState(null);
   const [bio, setBio] = useState('');
-  const [posts, setPosts] = useState([]);
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
+  const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-      if (userDoc.exists()) {
-        setUser(userDoc.data());
-        setProfilePic(userDoc.data().profilePic);
-        setBio(userDoc.data().bio);
+      const user = auth.currentUser;
+      if (user) {
+        setUser(user);
+        const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setBio(userData.bio || '');
+          setFollowers(userData.followers || 0);
+          setFollowing(userData.following || 0);
+          if (userData.profileImage) {
+            setProfileImage(userData.profileImage);
+          }
+        }
       }
     };
-
     fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserPosts = async () => {
-      const q = query(collection(db, 'posts'), where('userID', '==', auth.currentUser.uid));
-      const querySnapshot = await getDocs(q);
-      const userPosts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(userPosts);
-    };
-
-    fetchUserPosts();
   }, []);
 
   const handleSignOut = () => {
     signOut(auth).then(() => {
       navigation.navigate('LoginPage');
+    }).catch((error) => {
+      console.error('Error signing out: ', error);
     });
   };
 
-  const handleProfilePicUpload = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+  const handleSaveBio = async () => {
+    if (user) {
+      await updateDoc(doc(db, 'RideScout/Data/Users', user.uid), {
+        bio: bio,
+      });
+      alert('Bio updated!');
+    }
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
 
     if (!result.cancelled) {
-      const blob = await (await fetch(result.uri)).blob();
-      const storageRef = ref(storage, `profilePics/${auth.currentUser.uid}`);
+      const response = await fetch(result.uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `profileImages/${user.uid}`);
       await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(storageRef);
-
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        profilePic: url,
+      setProfileImage(url);
+      await updateDoc(doc(db, 'RideScout/Data/Users', user.uid), {
+        profileImage: url,
       });
-
-      setProfilePic(url);
+      alert('Profile image updated!');
     }
   };
 
-  const handleSaveBio = async () => {
-    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-      bio,
-    });
-  };
-
-  const renderItem = ({ item }) => (
-    <View style={styles.post}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text>{item.content}</Text>
-      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
-    </View>
-  );
-
-  if (!user) {
-    return <Text>Loading...</Text>;
-  }
-
   return (
     <View style={styles.container}>
-      <View style={styles.profile}>
-        {profilePic ? (
-          <Image source={{ uri: profilePic }} style={styles.avatar} />
-        ) : (
-          <Button title="Upload Profile Picture" onPress={handleProfilePicUpload} />
-        )}
-        <Text style={styles.username}>{auth.currentUser.email}</Text>
-        <TextInput
-          style={styles.bio}
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Add a bio"
-        />
-        <Button title="Save Bio" onPress={handleSaveBio} />
-        <Button title="Sign Out" onPress={handleSignOut} />
-      </View>
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListEmptyComponent={() => <Text>No posts yet</Text>}
+      <TouchableOpacity onPress={pickImage}>
+        <Image source={profileImage ? { uri: profileImage } : require('../assets/defaultProfile.png')} style={styles.profileImage} />
+      </TouchableOpacity>
+      <Text style={styles.email}>{user?.email}</Text>
+      <Text style={styles.followerCount}>Followers: {followers}</Text>
+      <Text style={styles.followingCount}>Following: {following}</Text>
+      <TextInput
+        style={styles.bioInput}
+        value={bio}
+        onChangeText={setBio}
+        placeholder="Enter your bio"
       />
+      <Button title="Save Bio" onPress={handleSaveBio} />
+      <Button title="Sign Out" onPress={handleSignOut} />
     </View>
   );
 };
@@ -114,48 +95,38 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-  },
-  profile: {
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    padding: 20,
   },
-  avatar: {
+  profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#ccc',
+    marginBottom: 20,
   },
-  username: {
-    marginTop: 10,
+  email: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 20,
   },
-  bio: {
-    marginTop: 10,
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    width: '80%',
+  followerCount: {
+    fontSize: 16,
+    marginBottom: 10,
   },
-  post: {
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  followingCount: {
+    fontSize: 16,
+    marginBottom: 10,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  image: {
+  bioInput: {
     width: '100%',
-    height: 200,
-    marginTop: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 
-export default ProfileScreen;
+export default Profile;

@@ -1,135 +1,59 @@
-// screens/ScenicSpots.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Button, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { auth, db, storage } from '../firebase';
-import { collection, addDoc, onSnapshot, query, where, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import * as ImagePicker from 'expo-image-picker';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Button } from 'react-native';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
 
-const ScenicSpots = () => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [images, setImages] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const isAdmin = auth.currentUser && auth.currentUser.email === 'jared@ridescout.net';
+const ScenicSpots = ({ navigation }) => {
+  const [spots, setSpots] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const auth = getAuth();
+  const db = getFirestore();
 
   useEffect(() => {
-    const q = query(collection(db, 'scenicspots'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postsData);
-      setLoading(false);
-    });
+    const fetchSpots = async () => {
+      const spotsQuery = query(collection(db, 'RideScout/Data/ScenicSpots'), orderBy('createdAt', 'desc'));
+      const spotsSnapshot = await getDocs(spotsQuery);
+      const spotsData = spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSpots(spotsData);
+    };
 
-    return unsubscribe;
+    const checkAdmin = () => {
+      const user = auth.currentUser;
+      if (user && user.email === 'jared@ridescout.net') {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    fetchSpots();
+    checkAdmin();
   }, []);
 
-  const handleImagePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-      allowsMultipleSelection: true, // Allow multiple images
-    });
-
-    if (!result.cancelled) {
-      const selectedImages = result.assets.map(asset => asset.uri);
-      setImages([...images, ...selectedImages]);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!title || !description || images.length === 0) {
-      alert('Please fill in all fields and add at least one image');
-      return;
-    }
-
-    const imageUrls = [];
-    for (let image of images) {
-      const response = await fetch(image);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `scenicspots/${auth.currentUser.uid}/${Date.now()}`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
-      imageUrls.push(url);
-    }
-
-    await addDoc(collection(db, 'scenicspots'), {
-      userID: auth.currentUser.uid,
-      title,
-      description,
-      images: imageUrls,
-      createdAt: new Date(),
-    });
-
-    setTitle('');
-    setDescription('');
-    setImages([]);
-  };
-
-  const handleDelete = async (postId) => {
-    await deleteDoc(doc(db, 'scenicspots', postId));
-  };
-
   const renderItem = ({ item }) => (
-    <View style={styles.item}>
+    <View style={styles.spot}>
       <Text style={styles.title}>{item.title}</Text>
-      <Text>{item.description}</Text>
-      <FlatList
-        data={item.images}
-        horizontal
-        renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
-        keyExtractor={(item, index) => index.toString()}
-      />
-      <Button title="Delete Post" onPress={() => handleDelete(item.id)} />
+      <Text style={styles.description}>{item.description}</Text>
+      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+      <Text>Likes: {item.likes}</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Comments', { spotId: item.id })}>
+        <Text style={styles.commentsLink}>View Comments</Text>
+      </TouchableOpacity>
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {isAdmin && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="Title"
-            value={title}
-            onChangeText={setTitle}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
-          />
-          {images.length > 0 && (
-            <FlatList
-              data={images}
-              horizontal
-              renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
-              keyExtractor={(item, index) => index.toString()}
-            />
-          )}
-          <Button title="Pick Images" onPress={handleImagePick} />
-          <Button title="Submit" onPress={handleSubmit} />
-        </>
+      {isAdmin && <Button title="Add Scenic Spot" onPress={() => navigation.navigate('CreateScenicSpot')} />}
+      {spots.length > 0 ? (
+        <FlatList
+          data={spots}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+        />
+      ) : (
+        <Text style={styles.noSpots}>No scenic spots available at the moment. Check back later!</Text>
       )}
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListEmptyComponent={<Text>No posts yet</Text>}
-      />
     </View>
   );
 };
@@ -137,31 +61,43 @@ const ScenicSpots = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: 20,
   },
-  input: {
-    height: 40,
-    borderColor: 'gray',
+  spot: {
+    marginBottom: 20,
+    padding: 15,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  item: {
-    marginBottom: 16,
-    padding: 16,
+    borderColor: '#ddd',
+    borderRadius: 10,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+  },
+  description: {
+    marginTop: 10,
+    fontSize: 16,
   },
   image: {
-    width: 100,
-    height: 100,
-    marginRight: 8,
+    marginTop: 10,
+    height: 200,
+    width: '100%',
+    borderRadius: 10,
+  },
+  commentsLink: {
+    marginTop: 10,
+    color: 'blue',
+    textDecorationLine: 'underline',
+  },
+  noSpots: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 

@@ -1,49 +1,58 @@
-// components/Like.js
 import React, { useState, useEffect } from 'react';
-import { View, Button, Text } from 'react-native';
-import { db } from '../firebase';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, updateDoc, increment } from 'firebase/firestore';
 
-const Like = ({ postId }) => {
-  const [likes, setLikes] = useState(0);
+const Like = ({ postId, initialLikes }) => {
+  const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
+  const auth = getAuth();
+  const db = getFirestore();
 
   useEffect(() => {
-    const fetchLikes = async () => {
-      const postDoc = await getDoc(doc(db, 'posts', postId));
-      if (postDoc.exists()) {
-        const data = postDoc.data();
-        setLikes(data.likes ? data.likes.length : 0);
-        setLiked(data.likes && data.likes.includes(auth.currentUser.uid));
-      }
-    };
-
-    fetchLikes();
+    // Check if the user has already liked the post (this can be extended by checking a 'likes' collection in Firestore)
   }, []);
 
   const handleLike = async () => {
-    const postRef = doc(db, 'posts', postId);
-    if (liked) {
-      await updateDoc(postRef, {
-        likes: arrayRemove(auth.currentUser.uid),
-      });
-      setLikes(likes - 1);
-      setLiked(false);
-    } else {
-      await updateDoc(postRef, {
-        likes: arrayUnion(auth.currentUser.uid),
+    if (!liked) {
+      await updateDoc(doc(db, 'RideScout/Data/Posts', postId), {
+        likes: increment(1)
       });
       setLikes(likes + 1);
       setLiked(true);
+    } else {
+      await updateDoc(doc(db, 'RideScout/Data/Posts', postId), {
+        likes: increment(-1)
+      });
+      setLikes(likes - 1);
+      setLiked(false);
     }
   };
 
   return (
-    <View>
-      <Button title={liked ? 'Unlike' : 'Like'} onPress={handleLike} />
-      <Text>{likes} likes</Text>
+    <View style={styles.container}>
+      <TouchableOpacity onPress={handleLike}>
+        <Text style={liked ? styles.liked : styles.unliked}>Like</Text>
+      </TouchableOpacity>
+      <Text style={styles.likeCount}>{likes} {likes === 1 ? 'Like' : 'Likes'}</Text>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  liked: {
+    color: 'blue',
+  },
+  unliked: {
+    color: 'gray',
+  },
+  likeCount: {
+    marginLeft: 10,
+  },
+});
 
 export default Like;

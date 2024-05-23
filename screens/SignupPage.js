@@ -1,37 +1,52 @@
-// screens/SignupPage.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const SignupPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const auth = getAuth();
+  const db = getFirestore();
 
   const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      await setDoc(doc(db, 'users', user.uid), {
+
+      // Create user document in Firestore
+      await setDoc(doc(db, 'RideScout/Data/Users', user.uid), {
         email: user.email,
-        following: [],
-        profilePic: '',
         bio: '',
+        followers: 0,
+        following: [],
+        profileImage: ''
       });
+
+      Alert.alert('Success', 'Account created successfully');
       navigation.navigate('LoginPage');
     } catch (error) {
-      alert(error.message);
+      Alert.alert('Signup Error', error.message);
     }
   };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Sign Up</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
@@ -40,7 +55,20 @@ const SignupPage = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+      />
       <Button title="Sign Up" onPress={handleSignup} />
+      <Text style={styles.loginText}>
+        Already have an account?{' '}
+        <Text style={styles.loginLink} onPress={() => navigation.navigate('LoginPage')}>
+          Login
+        </Text>
+      </Text>
     </View>
   );
 };
@@ -49,14 +77,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    textAlign: 'center',
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    width: '100%',
+    padding: 10,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  loginText: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  loginLink: {
+    color: 'blue',
+    textDecorationLine: 'underline',
   },
 });
 

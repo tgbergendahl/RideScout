@@ -1,69 +1,55 @@
-// screens/HomeScreen.js
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Button, Image } from 'react-native';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Button, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
-  const navigation = useNavigation();
+  const auth = getAuth();
+  const db = getFirestore();
 
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!auth.currentUser) return;
-
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
+      const user = auth.currentUser;
+      if (user) {
+        // Fetch the list of users that the current user follows
+        const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', user.uid));
+        const userData = userDoc.data();
         const following = userData.following || [];
 
-        if (following.length === 0) {
-          setPosts([]);
-          return;
-        }
-
-        const postsRef = collection(db, 'posts');
-        const q = query(postsRef, where('userID', 'in', following));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const fetchedPosts = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setPosts(fetchedPosts);
-        });
-
-        return unsubscribe;
+        // Fetch posts from users that the current user follows
+        const postsQuery = query(collection(db, 'RideScout/Data/Posts'), where('userId', 'in', following));
+        const postsSnapshot = await getDocs(postsQuery);
+        const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPosts(postsData);
       }
     };
-
-    const unsubscribe = fetchPosts();
-    return () => unsubscribe && unsubscribe();
+    fetchPosts();
   }, []);
 
-  const renderPost = ({ item }) => (
+  const renderItem = ({ item }) => (
     <View style={styles.post}>
-      {item.image && <Image source={{ uri: item.image }} style={styles.postImage} />}
-      <Text style={styles.postTitle}>{item.title}</Text>
-      <Text>{item.content}</Text>
-      <Text>Posted by: {item.userID}</Text>
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.content}>{item.content}</Text>
+      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+      <Text>Likes: {item.likes}</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })}>
+        <Text style={styles.commentsLink}>View Comments</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Button title="Create Post" onPress={() => navigation.navigate('CreatePost')} />
-      {posts.length === 0 ? (
-        <Text>Nothing on your feed right now, follow accounts to see what's happening!</Text>
-      ) : (
+      {posts.length > 0 ? (
         <FlatList
           data={posts}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
         />
+      ) : (
+        <Text style={styles.noPosts}>Nothing on your feed right now, follow accounts to see what's happening!</Text>
       )}
     </View>
   );
@@ -72,25 +58,37 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: 20,
   },
   post: {
-    marginBottom: 16,
-    padding: 16,
+    marginBottom: 20,
+    padding: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  postImage: {
-    width: '100%',
-    height: 200,
-    marginBottom: 8,
-  },
-  postTitle: {
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+  },
+  content: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  image: {
+    marginTop: 10,
+    height: 200,
+    width: '100%',
+    borderRadius: 10,
+  },
+  commentsLink: {
+    marginTop: 10,
+    color: 'blue',
+  },
+  noPosts: {
+    marginTop: 20,
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 
