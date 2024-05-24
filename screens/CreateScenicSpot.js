@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Text, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CreateScenicSpot = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
-
-  const auth = getAuth();
-  const db = getFirestore();
-  const storage = getStorage();
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -30,14 +26,15 @@ const CreateScenicSpot = ({ navigation }) => {
 
   const handleSubmit = async () => {
     const user = auth.currentUser;
-    if (user && user.email === 'jared@ridescout.net' && title && description) {
+    if (user && title && description) {
       setUploading(true);
-
       let imageUrl = null;
+
       if (image) {
         const response = await fetch(image);
         const blob = await response.blob();
-        const storageRef = ref(storage, `scenicSpots/${user.uid}/${Date.now()}`);
+        const timestamp = Date.now();
+        const storageRef = ref(storage, `postImages/${user.uid}/${timestamp}.jpg`);
         await uploadBytes(storageRef, blob);
         imageUrl = await getDownloadURL(storageRef);
       }
@@ -47,22 +44,21 @@ const CreateScenicSpot = ({ navigation }) => {
         title,
         description,
         imageUrl,
-        likes: 0,
         createdAt: serverTimestamp(),
       });
 
+      setUploading(false);
       setTitle('');
       setDescription('');
       setImage(null);
-      setUploading(false);
       navigation.navigate('ScenicSpots');
     } else {
-      alert('Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all fields');
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Title"
@@ -74,26 +70,25 @@ const CreateScenicSpot = ({ navigation }) => {
         placeholder="Description"
         value={description}
         onChangeText={setDescription}
-        multiline
       />
+      <Button title="Pick an Image" onPress={pickImage} />
       {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Upload Image" onPress={pickImage} />
       <Button title="Create Scenic Spot" onPress={handleSubmit} disabled={uploading} />
-    </ScrollView>
+      <Button title="Back" onPress={() => navigation.goBack()} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     padding: 20,
-    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
-    width: '100%',
-    padding: 10,
     borderWidth: 1,
     borderColor: '#ccc',
+    padding: 10,
     borderRadius: 5,
     marginBottom: 20,
   },

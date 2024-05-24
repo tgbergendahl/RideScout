@@ -12,6 +12,7 @@ const Profile = ({ navigation }) => {
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [profileImage, setProfileImage] = useState(null);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -47,6 +48,7 @@ const Profile = ({ navigation }) => {
         bio: bio,
       });
       alert('Bio updated!');
+      setEditMode(false);
     }
   };
 
@@ -61,7 +63,7 @@ const Profile = ({ navigation }) => {
     if (!result.cancelled) {
       const response = await fetch(result.uri);
       const blob = await response.blob();
-      const storageRef = ref(storage, `profileImages/${user.uid}`);
+      const storageRef = ref(storage, `profileImages/${user.uid}/profileImage.jpg`);
       await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(storageRef);
       setProfileImage(url);
@@ -80,13 +82,22 @@ const Profile = ({ navigation }) => {
       <Text style={styles.email}>{user?.email}</Text>
       <Text style={styles.followerCount}>Followers: {followers}</Text>
       <Text style={styles.followingCount}>Following: {following}</Text>
-      <TextInput
-        style={styles.bioInput}
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Enter your bio"
-      />
-      <Button title="Save Bio" onPress={handleSaveBio} />
+      {editMode ? (
+        <>
+          <TextInput
+            style={styles.bioInput}
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Enter your bio"
+          />
+          <Button title="Save Bio" onPress={handleSaveBio} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.bio}>{bio}</Text>
+          <Button title="Edit Profile" onPress={() => setEditMode(true)} />
+        </>
+      )}
       <Button title="Sign Out" onPress={handleSignOut} />
     </View>
   );
@@ -117,6 +128,10 @@ const styles = StyleSheet.create({
   followingCount: {
     fontSize: 16,
     marginBottom: 10,
+  },
+  bio: {
+    fontSize: 16,
+    marginVertical: 10,
   },
   bioInput: {
     width: '100%',

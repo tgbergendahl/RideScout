@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Button } from 'react-native';
 import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
 
 const HogHub = ({ navigation }) => {
@@ -36,6 +36,7 @@ const HogHub = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <Button title="Create Hog" onPress={() => navigation.navigate('CreateHog')} />
       {listings.length > 0 ? (
         <FlatList
           data={listings}

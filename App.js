@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import Icon from 'react-native-vector-icons/FontAwesome';  // Import FontAwesome
 import HomeScreen from './screens/HomeScreen';
 import ProfileScreen from './screens/Profile';
 import HogHubScreen from './screens/HogHub';
@@ -21,7 +22,40 @@ const Stack = createStackNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+
+          switch (route.name) {
+            case 'Home':
+              iconName = 'home';
+              break;
+            case 'FeaturedRides':
+              iconName = 'star';
+              break;
+            case 'ScenicSpots':
+              iconName = 'map-marker';
+              break;
+            case 'HogHub':
+              iconName = 'cogs'; // Gear icon for HogHub
+              break;
+            case 'Profile':
+              iconName = 'user';
+              break;
+            default:
+              iconName = 'circle';
+              break;
+          }
+
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+      })}
+      tabBarOptions={{
+        activeTintColor: 'tomato',
+        inactiveTintColor: 'gray',
+      }}
+    >
       <Tab.Screen name="Home" component={HomeScreen} options={{ header: () => <CustomHeader /> }} />
       <Tab.Screen name="FeaturedRides" component={FeaturedRidesScreen} options={{ header: () => <CustomHeader /> }} />
       <Tab.Screen name="ScenicSpots" component={ScenicSpotsScreen} options={{ header: () => <CustomHeader /> }} />
