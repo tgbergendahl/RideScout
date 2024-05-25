@@ -15,6 +15,9 @@ import SignupPage from './screens/SignupPage';
 import UpgradeAccount from './screens/UpgradeAccount';
 import ContactSellerScreen from './screens/ContactSeller';
 import CreateScenicSpotScreen from './screens/CreateScenicSpot';
+import CreateHogScreen from './screens/CreateHog';
+import EditProfileScreen from './screens/EditProfile';
+import CommentsScreen from './screens/Comments';
 import { AuthProvider } from './contexts/AuthContext';
 import './firebase';
 
@@ -86,6 +89,9 @@ export default function App() {
           <Stack.Screen name="UpgradeAccount" component={UpgradeAccount} />
           <Stack.Screen name="ContactSeller" component={ContactSellerScreen} />
           <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpotScreen} />
+          <Stack.Screen name="CreateHog" component={CreateHogScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="Comments" component={CommentsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

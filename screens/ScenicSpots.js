@@ -1,103 +1,116 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Button } from 'react-native';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity, TextInput } from 'react-native';
+import { getScenicSpots, createScenicSpot } from '../api/scenicSpots';
+import { auth, storage } from '../firebase';
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
 const ScenicSpots = ({ navigation }) => {
   const [spots, setSpots] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const auth = getAuth();
-  const db = getFirestore();
+  const [image, setImage] = useState(null);
+  const [description, setDescription] = useState('');
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const fetchSpots = async () => {
-      const spotsQuery = query(collection(db, 'RideScout/Data/ScenicSpots'), orderBy('createdAt', 'desc'));
-      const spotsSnapshot = await getDocs(spotsQuery);
-      const spotsData = spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSpots(spotsData);
+    const fetchData = async () => {
+      const data = await getScenicSpots();
+      setSpots(data);
     };
 
-    const checkAdmin = () => {
-      const user = auth.currentUser;
-      if (user && user.email === 'jared@ridescout.net') {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
-    };
-
-    fetchSpots();
-    checkAdmin();
+    fetchData();
   }, []);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.spot}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
-      <Text>Likes: {item.likes}</Text>
-      <TouchableOpacity onPress={() => navigation.navigate('Comments', { spotId: item.id })}>
-        <Text style={styles.commentsLink}>View Comments</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.uri);
+    }
+  };
+
+  const handleCreateSpot = async () => {
+    let imageUrl = '';
+    if (image) {
+      const response = await fetch(image);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `scenicSpotImages/${currentUser.uid}/${Date.now()}`);
+      await uploadBytes(storageRef, blob);
+      imageUrl = await getDownloadURL(storageRef);
+    }
+
+    const spotData = {
+      userId: currentUser.uid,
+      description,
+      imageUrl,
+    };
+
+    await createScenicSpot(spotData);
+    navigation.goBack();
+  };
 
   return (
     <View style={styles.container}>
-      {isAdmin && <Button title="Add Scenic Spot" onPress={() => navigation.navigate('CreateScenicSpot')} />}
-      {spots.length > 0 ? (
-        <FlatList
-          data={spots}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-        />
-      ) : (
-        <Text style={styles.noSpots}>No scenic spots available at the moment. Check back later!</Text>
+      <Image source={logo} style={styles.logo} />
+      {currentUser.email === 'jared@ridescout.net' && (
+        <View>
+          <TextInput
+            style={styles.input}
+            placeholder="Description"
+            value={description}
+            onChangeText={setDescription}
+          />
+          <Button title="Pick an image from camera roll" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
+          <Button title="Create Scenic Spot" onPress={handleCreateSpot} />
+        </View>
       )}
+      <FlatList
+        data={spots}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.spotItem}>
+            <Text>{item.description}</Text>
+            {item.photo && <Image source={{ uri: item.photo }} style={styles.image} />}
+          </View>
+        )}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
   },
-  spot: {
+  logo: {
+    width: 100,
+    height: 50,
+    alignSelf: 'center',
     marginBottom: 20,
-    padding: 15,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
+    marginBottom: 20,
+    padding: 10,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  description: {
-    marginTop: 10,
-    fontSize: 16,
+  spotItem: {
+    padding: 20,
+    marginVertical: 10,
+    backgroundColor: 'white',
+    borderRadius: 5,
   },
   image: {
-    marginTop: 10,
-    height: 200,
     width: '100%',
-    borderRadius: 10,
-  },
-  commentsLink: {
+    height: 200,
     marginTop: 10,
-    color: 'blue',
-    textDecorationLine: 'underline',
-  },
-  noSpots: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 16,
   },
 });
 

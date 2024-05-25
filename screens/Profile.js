@@ -1,119 +1,125 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, TouchableOpacity, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getAuth, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useAuth } from '../contexts/AuthContext';
-import styles from '../styles/styles';
+import { View, Text, Image, Button, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { useNavigation } from '@react-navigation/native';
+import { getPosts } from '../api/posts';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
-const Profile = ({ navigation }) => {
-  const [user, setUser] = useState(null);
-  const [bio, setBio] = useState('');
-  const [followers, setFollowers] = useState(0);
-  const [following, setFollowing] = useState(0);
-  const [profileImage, setProfileImage] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const { isCertifiedSeller, isSuperCertifiedSeller } = useAuth();
-
-  const auth = getAuth();
-  const db = getFirestore();
-  const storage = getStorage();
+const Profile = () => {
+  const navigation = useNavigation();
+  const [posts, setPosts] = useState([]);
+  const [userData, setUserData] = useState(null);
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
+    const fetchPosts = async () => {
+      const data = await getPosts();
+      setPosts(data.filter(post => post.userId === currentUser.uid));
+    };
+
     const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        setUser(user);
-        const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setBio(userData.bio || '');
-          setFollowers(userData.followers || 0);
-          setFollowing(userData.following || 0);
-          if (userData.profileImage) {
-            setProfileImage(userData.profileImage);
-          }
-        }
+      const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
       }
     };
+
+    fetchPosts();
     fetchUserData();
   }, []);
 
+  if (!currentUser) {
+    return <View><Text>No user data available.</Text></View>;
+  }
+
+  const getIconName = () => {
+    switch (userData?.accountType) {
+      case 'admin':
+        return 'user-shield';
+      case 'certifiedSeller':
+        return 'certificate';
+      case 'superCertifiedSeller':
+        return 'star';
+      default:
+        return 'user';
+    }
+  };
+
   const handleSignOut = () => {
-    signOut(auth).then(() => {
-      navigation.navigate('LoginPage');
-    }).catch((error) => {
-      console.error('Error signing out: ', error);
-    });
-  };
-
-  const handleSaveBio = async () => {
-    if (user) {
-      await updateDoc(doc(db, 'RideScout/Data/Users', user.uid), {
-        bio: bio,
-      });
-      alert('Bio updated!');
-      setEditing(false);
-    }
-  };
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.cancelled) {
-      const response = await fetch(result.uri);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `profileImages/${user.uid}`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
-      setProfileImage(url);
-      await updateDoc(doc(db, 'RideScout/Data/Users', user.uid), {
-        profileImage: url,
-      });
-      alert('Profile image updated!');
-    }
+    auth.signOut().then(() => navigation.replace('LoginPage'));
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={pickImage}>
-        <Image source={profileImage ? { uri: profileImage } : require('../assets/defaultProfile.png')} style={styles.profileImage} />
+      <Image source={logo} style={styles.logo} />
+      {userData && (
+        <>
+          <Image source={{ uri: userData.profilePicture }} style={styles.profileImage} />
+          <Text>{currentUser.email}</Text>
+          <Text>Followers: {userData.followers}</Text>
+          <Text>Following: {userData.following}</Text>
+          <Icon name={getIconName()} size={30} color="gold" />
+        </>
+      )}
+      <TouchableOpacity onPress={() => navigation.navigate('EditProfile', { userId: currentUser.uid })}>
+        <Text style={styles.editProfile}>Edit Profile</Text>
       </TouchableOpacity>
-      <Text style={styles.email}>{user?.email}</Text>
-      <Text style={styles.followerCount}>Followers: {followers}</Text>
-      <Text style={styles.followingCount}>Following: {following}</Text>
-      {editing ? (
-        <>
-          <TextInput
-            style={styles.input}
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Enter your bio"
-          />
-          <Button title="Save Bio" onPress={handleSaveBio} />
-        </>
-      ) : (
-        <>
-          <Text style={styles.bio}>{bio}</Text>
-          <Button title="Edit Profile" onPress={() => setEditing(true)} />
-        </>
-      )}
       <Button title="Sign Out" onPress={handleSignOut} />
-      {isCertifiedSeller || isSuperCertifiedSeller ? (
-        <Text style={styles.sellerBadge}>
-          {isCertifiedSeller ? 'Certified Seller' : 'Super Certified Seller'}
-        </Text>
-      ) : (
-        <Button title="Upgrade to Certified Seller" onPress={() => navigation.navigate('UpgradeAccount')} />
-      )}
+      <TouchableOpacity onPress={() => navigation.navigate('UpgradeAccount')}>
+        <Text style={styles.upgradeAccount}>Upgrade to Certified Seller</Text>
+      </TouchableOpacity>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.postItem}>
+            <Text>{item.content}</Text>
+            {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+          </View>
+        )}
+      />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+  },
+  logo: {
+    width: 100,
+    height: 50,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  editProfile: {
+    color: 'blue',
+    marginVertical: 10,
+  },
+  upgradeAccount: {
+    color: 'blue',
+    marginVertical: 10,
+  },
+  postItem: {
+    padding: 20,
+    marginVertical: 10,
+    backgroundColor: 'white',
+    borderRadius: 5,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
+  },
+});
 
 export default Profile;

@@ -1,109 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Button } from 'react-native';
-import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
+import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { getHogs } from '../api/hogs';
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
-const HogHub = ({ navigation }) => {
-  const [listings, setListings] = useState([]);
-  const { isCertifiedSeller, isSuperCertifiedSeller } = useAuth();
-  const db = getFirestore();
+const HogHub = () => {
+  const [hogs, setHogs] = useState([]);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchListings = async () => {
-      const listingsQuery = query(collection(db, 'RideScout/Data/Hogs'), orderBy('createdAt', 'desc'));
-      const listingsSnapshot = await getDocs(listingsQuery);
-      const listingsData = listingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setListings(listingsData);
+    const fetchData = async () => {
+      const data = await getHogs();
+      setHogs(data);
     };
-    fetchListings();
-  }, []);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.listing}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.category}>Category: {item.category}</Text>
-      <Text style={styles.price}>Price: ${item.price}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-      <FlatList
-        data={item.imageUrls}
-        horizontal
-        renderItem={({ item: imageUrl }) => <Image source={{ uri: imageUrl }} style={styles.image} />}
-        keyExtractor={(imageUrl, index) => index.toString()}
-      />
-      <TouchableOpacity onPress={() => navigation.navigate('ContactSeller', { listingId: item.id })}>
-        <Text style={styles.contactLink}>Contact Seller</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    fetchData();
+  }, []);
 
   return (
     <View style={styles.container}>
-      {listings.length > 0 ? (
-        <FlatList
-          data={listings}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-        />
-      ) : (
-        <Text style={styles.noListings}>No listings available at the moment. Check back later!</Text>
-      )}
-      {(isCertifiedSeller || isSuperCertifiedSeller) && (
-        <Button title="Create Hog" onPress={() => navigation.navigate('CreateHog')} />
-      )}
+      <Image source={logo} style={styles.logo} />
+      <Button
+        title="Create Hog"
+        onPress={() => navigation.navigate('CreateHog')}
+      />
+      <FlatList
+        data={hogs}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.hogItem}>
+            <Text>Category: {item.category}</Text>
+            <Text>Price: ${item.price}</Text>
+            {item.photo && <Image source={{ uri: item.photo }} style={styles.image} />}
+            <TouchableOpacity onPress={() => navigation.navigate('ContactSeller', { hogId: item.id })}>
+              <Text style={styles.contactSeller}>Contact Seller</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
   },
-  listing: {
+  logo: {
+    width: 100,
+    height: 50,
+    alignSelf: 'center',
     marginBottom: 20,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  category: {
-    fontSize: 16,
-    color: '#555',
-    marginVertical: 5,
-  },
-  price: {
-    fontSize: 16,
-    color: '#000',
-    marginVertical: 5,
-  },
-  description: {
-    fontSize: 16,
+  hogItem: {
+    padding: 20,
     marginVertical: 10,
+    backgroundColor: 'white',
+    borderRadius: 5,
   },
   image: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  contactLink: {
+    width: '100%',
+    height: 200,
     marginTop: 10,
-    color: 'blue',
-    textDecorationLine: 'underline',
   },
-  noListings: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 16,
+  contactSeller: {
+    color: 'blue',
+    marginTop: 10,
   },
 });
 
