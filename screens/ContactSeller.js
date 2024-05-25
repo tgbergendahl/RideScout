@@ -1,11 +1,13 @@
-// screens/CreateScenicSpot.js
+// screens/ContactSeller.js
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const CreateScenicSpot = () => {
+const ContactSeller = ({ route }) => {
+  const { listingId } = route.params;
+
   return (
     <View style={styles.container}>
-      <Text>Create a Scenic Spot</Text>
+      <Text>Contact Seller for listing ID: {listingId}</Text>
     </View>
   );
 };
@@ -19,4 +21,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateScenicSpot;
+export default ContactSeller;

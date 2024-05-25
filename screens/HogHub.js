@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Button } from 'react-native';
 import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 
 const HogHub = ({ navigation }) => {
   const [listings, setListings] = useState([]);
+  const { isCertifiedSeller, isSuperCertifiedSeller } = useAuth();
   const db = getFirestore();
 
   useEffect(() => {
@@ -36,7 +38,6 @@ const HogHub = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Button title="Create Hog" onPress={() => navigation.navigate('CreateHog')} />
       {listings.length > 0 ? (
         <FlatList
           data={listings}
@@ -45,6 +46,9 @@ const HogHub = ({ navigation }) => {
         />
       ) : (
         <Text style={styles.noListings}>No listings available at the moment. Check back later!</Text>
+      )}
+      {(isCertifiedSeller || isSuperCertifiedSeller) && (
+        <Button title="Create Hog" onPress={() => navigation.navigate('CreateHog')} />
       )}
     </View>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/FontAwesome';  // Import FontAwesome
+import Icon from 'react-native-vector-icons/FontAwesome';
 import HomeScreen from './screens/HomeScreen';
 import ProfileScreen from './screens/Profile';
 import HogHubScreen from './screens/HogHub';
@@ -10,74 +10,84 @@ import FeaturedRidesScreen from './screens/FeaturedRides';
 import ScenicSpotsScreen from './screens/ScenicSpots';
 import ChallengesPageScreen from './screens/ChallengesPage';
 import CreatePostScreen from './screens/CreatePost';
-import CreateScenicSpotScreen from './screens/CreateScenicSpot';
 import LoginPage from './screens/LoginPage';
 import SignupPage from './screens/SignupPage';
-import CommentScreen from './screens/CommentScreen';
-import ContactSellerScreen from './screens/ContactSellerScreen';
-import CustomHeader from './components/CustomHeader';
+import UpgradeAccount from './screens/UpgradeAccount';
+import ContactSellerScreen from './screens/ContactSeller';
+import CreateScenicSpotScreen from './screens/CreateScenicSpot';
+import { AuthProvider } from './contexts/AuthContext';
+import './firebase';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function MainTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-
-          switch (route.name) {
-            case 'Home':
-              iconName = 'home';
-              break;
-            case 'FeaturedRides':
-              iconName = 'star';
-              break;
-            case 'ScenicSpots':
-              iconName = 'map-marker';
-              break;
-            case 'HogHub':
-              iconName = 'cogs'; // Gear icon for HogHub
-              break;
-            case 'Profile':
-              iconName = 'user';
-              break;
-            default:
-              iconName = 'circle';
-              break;
-          }
-
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-      })}
-      tabBarOptions={{
-        activeTintColor: 'tomato',
-        inactiveTintColor: 'gray',
-      }}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ header: () => <CustomHeader /> }} />
-      <Tab.Screen name="FeaturedRides" component={FeaturedRidesScreen} options={{ header: () => <CustomHeader /> }} />
-      <Tab.Screen name="ScenicSpots" component={ScenicSpotsScreen} options={{ header: () => <CustomHeader /> }} />
-      <Tab.Screen name="HogHub" component={HogHubScreen} options={{ header: () => <CustomHeader /> }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ header: () => <CustomHeader /> }} />
+    <Tab.Navigator>
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="home" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="FeaturedRides"
+        component={FeaturedRidesScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="star" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ScenicSpots"
+        component={ScenicSpotsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="map-marker" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="HogHub"
+        component={HogHubScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="motorcycle" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="user" color={color} size={size} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="LoginPage">
-        <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
-        <Stack.Screen name="SignupPage" component={SignupPage} options={{ headerShown: false }} />
-        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-        <Stack.Screen name="ChallengesPage" component={ChallengesPageScreen} options={{ header: () => <CustomHeader /> }} />
-        <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ header: () => <CustomHeader /> }} />
-        <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpotScreen} options={{ header: () => <CustomHeader /> }} />
-        <Stack.Screen name="Comments" component={CommentScreen} options={{ header: () => <CustomHeader /> }} />
-        <Stack.Screen name="ContactSeller" component={ContactSellerScreen} options={{ header: () => <CustomHeader /> }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="LoginPage">
+          <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
+          <Stack.Screen name="SignupPage" component={SignupPage} options={{ headerShown: false }} />
+          <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="ChallengesPage" component={ChallengesPageScreen} />
+          <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+          <Stack.Screen name="UpgradeAccount" component={UpgradeAccount} />
+          <Stack.Screen name="ContactSeller" component={ContactSellerScreen} />
+          <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpotScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AuthProvider>
   );
 }

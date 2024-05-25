@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Text, Alert } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { auth, db, storage } from '../firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CreatePost = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -11,6 +11,10 @@ const CreatePost = ({ navigation }) => {
   const [hashtags, setHashtags] = useState('');
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  const auth = getAuth();
+  const db = getFirestore();
+  const storage = getStorage();
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -34,8 +38,7 @@ const CreatePost = ({ navigation }) => {
       if (image) {
         const response = await fetch(image);
         const blob = await response.blob();
-        const timestamp = Date.now();
-        const storageRef = ref(storage, `postImages/${user.uid}/${timestamp}.jpg`);
+        const storageRef = ref(storage, `postImages/${user.uid}/${Date.now()}.jpg`);
         await uploadBytes(storageRef, blob);
         imageUrl = await getDownloadURL(storageRef);
       }
@@ -51,18 +54,15 @@ const CreatePost = ({ navigation }) => {
       });
 
       setUploading(false);
-      setTitle('');
-      setContent('');
-      setHashtags('');
-      setImage(null);
-      navigation.navigate('MainTabs');
+      Alert.alert('Success', 'Post created successfully!');
+      navigation.navigate('Home');
     } else {
       Alert.alert('Error', 'Please fill in all fields');
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Title"
@@ -84,8 +84,8 @@ const CreatePost = ({ navigation }) => {
       <Button title="Pick an Image" onPress={pickImage} />
       {image && <Image source={{ uri: image }} style={styles.image} />}
       <Button title="Create Post" onPress={handleSubmit} disabled={uploading} />
-      <Button title="Back" onPress={() => navigation.goBack()} />
-    </View>
+      <Button title="Back" onPress={() => navigation.navigate('Home')} />
+    </ScrollView>
   );
 };
 
@@ -93,7 +93,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
   },
   input: {
     borderWidth: 1,

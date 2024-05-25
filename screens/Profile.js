@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Image, TouchableOpacity, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { auth, db, storage } from '../firebase';
-import { signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth, signOut } from 'firebase/auth';
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '../contexts/AuthContext';
+import styles from '../styles/styles';
 
 const Profile = ({ navigation }) => {
   const [user, setUser] = useState(null);
@@ -12,7 +13,12 @@ const Profile = ({ navigation }) => {
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [profileImage, setProfileImage] = useState(null);
-  const [editMode, setEditMode] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const { isCertifiedSeller, isSuperCertifiedSeller } = useAuth();
+
+  const auth = getAuth();
+  const db = getFirestore();
+  const storage = getStorage();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -48,7 +54,7 @@ const Profile = ({ navigation }) => {
         bio: bio,
       });
       alert('Bio updated!');
-      setEditMode(false);
+      setEditing(false);
     }
   };
 
@@ -63,7 +69,7 @@ const Profile = ({ navigation }) => {
     if (!result.cancelled) {
       const response = await fetch(result.uri);
       const blob = await response.blob();
-      const storageRef = ref(storage, `profileImages/${user.uid}/profileImage.jpg`);
+      const storageRef = ref(storage, `profileImages/${user.uid}`);
       await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(storageRef);
       setProfileImage(url);
@@ -82,10 +88,10 @@ const Profile = ({ navigation }) => {
       <Text style={styles.email}>{user?.email}</Text>
       <Text style={styles.followerCount}>Followers: {followers}</Text>
       <Text style={styles.followingCount}>Following: {following}</Text>
-      {editMode ? (
+      {editing ? (
         <>
           <TextInput
-            style={styles.bioInput}
+            style={styles.input}
             value={bio}
             onChangeText={setBio}
             placeholder="Enter your bio"
@@ -95,53 +101,19 @@ const Profile = ({ navigation }) => {
       ) : (
         <>
           <Text style={styles.bio}>{bio}</Text>
-          <Button title="Edit Profile" onPress={() => setEditMode(true)} />
+          <Button title="Edit Profile" onPress={() => setEditing(true)} />
         </>
       )}
       <Button title="Sign Out" onPress={handleSignOut} />
+      {isCertifiedSeller || isSuperCertifiedSeller ? (
+        <Text style={styles.sellerBadge}>
+          {isCertifiedSeller ? 'Certified Seller' : 'Super Certified Seller'}
+        </Text>
+      ) : (
+        <Button title="Upgrade to Certified Seller" onPress={() => navigation.navigate('UpgradeAccount')} />
+      )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-  },
-  email: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  followerCount: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  followingCount: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  bio: {
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  bioInput: {
-    width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-});
 
 export default Profile;
