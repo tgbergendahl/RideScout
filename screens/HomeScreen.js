@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Button, FlatList, StyleSheet, Image, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { getPosts, deletePost, likePost, addComment } from '../api/posts';
+import { getPosts, deletePost, likePost } from '../api/posts';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import Post from '../components/Post';
@@ -60,7 +60,9 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Image source={logo} style={styles.logo} />
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+      </View>
       <Button title="Create Post" onPress={() => navigation.navigate('CreatePost')} />
       <FlatList
         data={posts}
@@ -81,13 +83,22 @@ const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+  },
+  header: {
+    width: '100%',
+    height: 80, // Increased height to accommodate larger logo
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10, // Added padding for better spacing
   },
   logo: {
-    width: 100,
-    height: 50,
-    alignSelf: 'center',
-    marginBottom: 20,
+    width: 200, // Adjusted size
+    height: 500, // Adjusted size
+    resizeMode: 'contain', // Ensures the logo maintains its aspect ratio
   },
 });
 

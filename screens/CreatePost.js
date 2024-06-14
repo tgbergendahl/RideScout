@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { createPost } from '../api/posts';
 import { auth, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
 const CreatePost = ({ navigation }) => {
   const [content, setContent] = useState('');
@@ -47,6 +48,9 @@ const CreatePost = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+      </View>
       <TextInput
         style={styles.input}
         placeholder="What's on your mind?"
@@ -64,6 +68,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    width: '100%',
+    height: 80, // Increased height to accommodate larger logo
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10, // Added padding for better spacing
+  },
+  logo: {
+    width: 200, // Adjusted size
+    height: 500, // Adjusted size
+    resizeMode: 'contain', // Ensures the logo maintains its aspect ratio
   },
   input: {
     height: 100,
