@@ -1,50 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
+import { getComments, addComment } from '../api/comments'; // Adjust the path as necessary
 
 const Comment = ({ postId }) => {
   const [comments, setComments] = useState([]);
   const [comment, setComment] = useState('');
   const auth = getAuth();
-  const db = getFirestore();
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
     const fetchComments = async () => {
-      const commentsQuery = query(
-        collection(db, 'RideScout/Data/Posts', postId, 'comments'),
-        orderBy('createdAt', 'asc')
-      );
-      const commentsSnapshot = await getDocs(commentsQuery);
-      const commentsData = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const commentsData = await getComments(postId);
       setComments(commentsData);
     };
     fetchComments();
   }, [postId]);
 
   const handleAddComment = async () => {
-    const user = auth.currentUser;
-    if (user && comment) {
-      await addDoc(collection(db, 'RideScout/Data/Posts', postId, 'comments'), {
-        userId: user.uid,
-        comment,
-        createdAt: serverTimestamp(),
-      });
+    if (currentUser && comment.trim()) {
+      await addComment(postId, comment.trim(), currentUser.uid);
       setComment('');
-      // Re-fetch comments to update the list
-      const commentsQuery = query(
-        collection(db, 'RideScout/Data/Posts', postId, 'comments'),
-        orderBy('createdAt', 'asc')
-      );
-      const commentsSnapshot = await getDocs(commentsQuery);
-      const commentsData = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const commentsData = await getComments(postId); // Re-fetch comments to update the list
       setComments(commentsData);
     }
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.comment}>
-      <Text style={styles.commentText}>{item.comment}</Text>
+      <Text style={styles.commentText}>{item.content}</Text>
     </View>
   );
 

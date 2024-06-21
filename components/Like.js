@@ -1,28 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, updateDoc, increment } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 
 const Like = ({ postId, initialLikes }) => {
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
   const auth = getAuth();
   const db = getFirestore();
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
-    // Check if the user has already liked the post (this can be extended by checking a 'likes' collection in Firestore)
-  }, []);
+    const checkIfLiked = async () => {
+      const postDoc = await getDoc(doc(db, 'RideScout/Data/Posts', postId));
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        if (postData.likedBy && postData.likedBy.includes(currentUser.uid)) {
+          setLiked(true);
+        }
+      }
+    };
+    checkIfLiked();
+  }, [db, postId, currentUser.uid]);
 
   const handleLike = async () => {
+    const postRef = doc(db, 'RideScout/Data/Posts', postId);
     if (!liked) {
-      await updateDoc(doc(db, 'RideScout/Data/Posts', postId), {
-        likes: increment(1)
+      await updateDoc(postRef, {
+        likes: increment(1),
+        likedBy: currentUser.uid ? increment(1) : []
       });
       setLikes(likes + 1);
       setLiked(true);
     } else {
-      await updateDoc(doc(db, 'RideScout/Data/Posts', postId), {
-        likes: increment(-1)
+      await updateDoc(postRef, {
+        likes: increment(-1),
+        likedBy: currentUser.uid ? increment(-1) : []
       });
       setLikes(likes - 1);
       setLiked(false);
@@ -32,7 +45,9 @@ const Like = ({ postId, initialLikes }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={handleLike}>
-        <Text style={liked ? styles.liked : styles.unliked}>Like</Text>
+        <Text style={liked ? styles.liked : styles.unliked}>
+          <Icon name="thumbs-up" size={20} color={liked ? 'blue' : 'gray'} /> Like
+        </Text>
       </TouchableOpacity>
       <Text style={styles.likeCount}>{likes} {likes === 1 ? 'Like' : 'Likes'}</Text>
     </View>
