@@ -10,14 +10,14 @@ const EditProfile = ({ route }) => {
   console.log('User data:', user);
 
   const [bio, setBio] = useState(user.bio || '');
-  const [profilePicture, setProfilePicture] = useState(user.profilePicture || null);
+  const [profileImage, setProfileImage] = useState(user.profileImage || null);
   const navigation = useNavigation();
 
   const handleSave = async () => {
     try {
       const updatedData = { bio };
-      if (profilePicture) {
-        updatedData.profilePicture = profilePicture;
+      if (profileImage) {
+        updatedData.profileImage = profileImage;
       }
       console.log('Updated profile data:', updatedData);
       await updateProfile(user.id, updatedData);
@@ -37,7 +37,7 @@ const EditProfile = ({ route }) => {
     });
 
     if (!result.canceled) {
-      setProfilePicture(result.assets[0].uri);
+      setProfileImage(result.assets[0].uri);
     }
   };
 
@@ -45,7 +45,7 @@ const EditProfile = ({ route }) => {
     <View style={styles.container}>
       <TouchableOpacity onPress={pickImage}>
         <Image
-          source={profilePicture ? { uri: profilePicture } : defaultProfile}
+          source={profileImage ? { uri: profileImage } : defaultProfile}
           style={styles.profileImage}
         />
       </TouchableOpacity>

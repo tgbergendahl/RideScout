@@ -4,9 +4,9 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import { getPosts, deletePost, likePost } from '../api/posts';
 import { auth, db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import logo from '../assets/Ride_scout_2.jpg'; // Ensure the correct path to your logo image
-import defaultProfile from '../assets/defaultProfile.png'; // Ensure the correct path to your default profile image
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import logo from '../assets/Ride scout (2).jpg';
+import defaultProfile from '../assets/defaultProfile.png';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -16,18 +16,26 @@ const Profile = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (currentUser) {
+      fetchData();
+    } else {
+      console.error("No current user found");
+    }
+  }, [currentUser]);
 
   const fetchData = async () => {
     try {
       const data = await getPosts();
       setPosts(data.filter(post => post.userId === currentUser.uid));
+
       const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
         setUserData(userDoc.data());
         console.log('User Data:', userDoc.data());
+      } else {
+        console.error("No user data found in Firestore");
+        Alert.alert('Error', 'No user data found in Firestore');
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -47,7 +55,7 @@ const Profile = () => {
   const handleDelete = async (postId) => {
     try {
       await deletePost(postId);
-      fetchData(); // Refresh the data after deletion
+      fetchData();
     } catch (error) {
       console.error('Error deleting post:', error);
       Alert.alert('Error', 'There was an issue deleting the post. Please try again later.');
@@ -57,7 +65,7 @@ const Profile = () => {
   const handleLike = async (postId) => {
     try {
       await likePost(postId, currentUser.uid);
-      fetchData(); // Refresh the data after liking a post
+      fetchData();
     } catch (error) {
       console.error('Error liking post:', error);
       Alert.alert('Error', 'There was an issue liking the post. Please try again later.');
@@ -66,6 +74,22 @@ const Profile = () => {
 
   const handleComment = (postId) => {
     navigation.navigate('Comments', { postId });
+  };
+
+  const handleProfileUpdate = async (updatedData) => {
+    try {
+      if (!updatedData || !updatedData.profileImage || !updatedData.bio) {
+        throw new Error('Profile data is incomplete or undefined.');
+      }
+
+      const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
+      await updateDoc(userRef, updatedData);
+
+      console.log('Updated profile data:', updatedData);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'There was an issue updating the profile. Please try again later.');
+    }
   };
 
   if (!currentUser) {
@@ -96,8 +120,9 @@ const Profile = () => {
       </View>
       {userData && (
         <>
-          <Image source={userData.profilePicture ? { uri: userData.profilePicture } : defaultProfile} style={styles.profileImage} />
+          <Image source={userData.profileImage ? { uri: userData.profileImage } : defaultProfile} style={styles.profileImage} />
           <Text style={styles.email}>{currentUser.email}</Text>
+          <Text style={styles.bio}>{userData.bio || 'This user has no bio'}</Text>
           <Text style={styles.followers}>Followers: {userData.followers}</Text>
           <Text style={styles.following}>Following: {userData.following}</Text>
           <Icon name={getIconName()} size={30} color="gold" />
@@ -155,15 +180,15 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 150,
+    height: 150, // Same height as in HomeScreen
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
   },
   logo: {
-    width: 300,
-    height: 150,
+    width: 300, // Same width as in HomeScreen
+    height: 150, // Same height as in HomeScreen
     resizeMode: 'contain',
     alignSelf: 'center',
     marginBottom: 20,
@@ -178,6 +203,11 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  bio: {
+    fontSize: 16,
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -197,7 +227,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   editProfileButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#000',
     padding: 10,
     borderRadius: 5,
   },
@@ -206,7 +236,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signOutButton: {
-    backgroundColor: '#FF0000',
+    backgroundColor: '#000',
     padding: 10,
     borderRadius: 5,
   },
@@ -215,13 +245,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   upgradeAccountButton: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#fff',
+    borderColor: '#000',
+    borderWidth: 1,
     padding: 10,
     borderRadius: 5,
     marginBottom: 20,
   },
   upgradeAccountButtonText: {
-    color: '#fff',
+    color: '#000',
     fontWeight: 'bold',
     textAlign: 'center',
   },
