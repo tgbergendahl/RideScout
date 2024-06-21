@@ -5,7 +5,7 @@ import { WebView } from 'react-native-webview';
 import { RadioButton } from 'react-native-paper'; // Ensure this import is correct
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const UpgradeAccount = () => {
   const auth = getAuth();

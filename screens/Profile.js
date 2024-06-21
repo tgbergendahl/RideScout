@@ -1,81 +1,63 @@
-// screens/Profile.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, Button, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import { View, Text, FlatList, StyleSheet, Image, Button, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { getUserPosts } from '../api/posts';
+import { auth, db } from '../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import logo from '../assets/RideScout.jpg'; // Corrected path to your logo image
 
 const Profile = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { userId } = route.params;
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const db = getFirestore();
+  const navigation = useNavigation();
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
     const fetchUser = async () => {
-      const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', userId));
-      if (userDoc.exists()) {
-        setUser(userDoc.data());
-      }
+      const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', currentUser.uid));
+      setUser(userDoc.data());
     };
 
-    const fetchUserPosts = async () => {
-      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), where('userId', '==', userId));
-      const postsSnapshot = await getDocs(postsQuery);
-      const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postsData);
+    const fetchPosts = async () => {
+      const userPosts = await getUserPosts(currentUser.uid);
+      setPosts(userPosts);
     };
 
     fetchUser();
-    fetchUserPosts();
-  }, [db, userId]);
+    fetchPosts();
+  }, [currentUser.uid]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    const fetchData = async () => {
-      const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', userId));
-      if (userDoc.exists()) {
-        setUser(userDoc.data());
-      }
-
-      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), where('userId', '==', userId));
-      const postsSnapshot = await getDocs(postsQuery);
-      const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postsData);
-      setRefreshing(false);
-    };
-
-    fetchData();
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigation.replace('LoginPage');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
-
-  const renderPost = ({ item }) => (
-    <View style={styles.postItem}>
-      <Text>{item.content}</Text>
-      {item.imageUrls && item.imageUrls.map((url, index) => (
-        <Image key={index} source={{ uri: url }} style={styles.image} />
-      ))}
-      {item.videoUrl && <Video source={{ uri: item.videoUrl }} style={styles.video} />}
-    </View>
-  );
 
   return (
     <View style={styles.container}>
-      <Image source={logo} style={styles.logo} />
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+      </View>
       {user && (
         <>
-          <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
-          <Text style={styles.bio}>{user.bio}</Text>
+          <Text style={styles.email}>{user.email}</Text>
+          <Button title="Sign Out" onPress={handleSignOut} style={styles.signOutButton} />
+          <FlatList
+            data={posts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.postItem}>
+                <Text>{item.content}</Text>
+                {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+              </View>
+            )}
+          />
         </>
       )}
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPost}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      />
     </View>
   );
 };
@@ -86,41 +68,45 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
   },
-  logo: {
-    width: 100,
-    height: 50,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 150,
+  header: {
+    width: '100%',
     height: 150,
-    borderRadius: 75,
-    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10,
     marginBottom: 20,
   },
-  bio: {
-    fontSize: 16,
+  logo: {
+    width: 300,
+    height: 150,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+  },
+  email: {
+    fontSize: 20,
+    fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
   },
-  postItem: {
-    padding: 20,
-    marginVertical: 10,
-    backgroundColor: 'white',
+  signOutButton: {
+    backgroundColor: '#d9534f',
+    padding: 10,
     borderRadius: 5,
-    borderColor: '#ccc',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  postItem: {
+    padding: 10,
     borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
   },
   image: {
     width: '100%',
     height: 200,
-    marginVertical: 10,
-  },
-  video: {
-    width: '100%',
-    height: 200,
-    marginVertical: 10,
+    marginTop: 10,
   },
 });
 

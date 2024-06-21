@@ -1,5 +1,5 @@
 // api/users.js
-import { db } from '../firebase';
+import { db } from '../firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 
 // Update user profile

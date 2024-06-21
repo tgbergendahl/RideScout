@@ -1,3 +1,4 @@
+// screens/SignupPage.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -62,7 +63,7 @@ const SignupPage = ({ navigation }) => {
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
-      <Button title="Sign Up" onPress={handleSignup} />
+      <Button title="Sign Up" onPress={handleSignup} color="black" />
       <Text style={styles.loginText}>
         Already have an account?{' '}
         <Text style={styles.loginLink} onPress={() => navigation.navigate('LoginPage')}>

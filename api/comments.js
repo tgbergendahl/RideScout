@@ -1,5 +1,5 @@
 // api/comments.js
-import { db } from '../firebase';
+import { db } from '../firebaseConfig';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
 // Fetch comments for a specific post

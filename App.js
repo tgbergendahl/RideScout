@@ -19,7 +19,7 @@ import CreateHogScreen from './screens/CreateHog';
 import EditProfileScreen from './screens/EditProfile';
 import CommentsScreen from './screens/Comments';
 import { AuthProvider } from './contexts/AuthContext';
-import './firebase';
+import './firebaseConfig';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();

@@ -1,5 +1,5 @@
 // api/scenicSpots.js
-import { db } from '../firebase';
+import { db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // Create a new scenic spot

@@ -1,20 +1,18 @@
-// screens/CreatePost.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, Image, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { createPost } from '../api/posts';
-import { getAuth, getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import { auth, storage } from '../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import logo from '../assets/RideScout.jpg';
 
 const CreatePost = ({ navigation }) => {
   const [content, setContent] = useState('');
-  const [images, setImages] = useState([]);
-  const [video, setVideo] = useState(null);
-  const currentUser = getAuth().currentUser;
-  const storage = getStorage();
+  const [image, setImage] = useState(null);
+  const currentUser = auth.currentUser;
 
-  const pickMedia = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [4, 3],
@@ -22,41 +20,25 @@ const CreatePost = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      if (result.type === 'image') {
-        setImages([...images, result.assets[0].uri]);
-      } else if (result.type === 'video') {
-        setVideo(result.assets[0].uri);
-      }
+      setImage(result.assets[0].uri);
     }
   };
 
   const handleSubmit = async () => {
-    let imageUrls = [];
-    let videoUrl = '';
-
+    let imageUrl = '';
     try {
-      for (let image of images) {
+      if (image) {
         const response = await fetch(image);
         const blob = await response.blob();
         const storageRef = ref(storage, `postImages/${currentUser.uid}/${Date.now()}`);
         await uploadBytes(storageRef, blob);
-        const imageUrl = await getDownloadURL(storageRef);
-        imageUrls.push(imageUrl);
-      }
-
-      if (video) {
-        const response = await fetch(video);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `postVideos/${currentUser.uid}/${Date.now()}`);
-        await uploadBytes(storageRef, blob);
-        videoUrl = await getDownloadURL(storageRef);
+        imageUrl = await getDownloadURL(storageRef);
       }
 
       const postData = {
         userId: currentUser.uid,
         content,
-        imageUrls,
-        videoUrl,
+        imageUrl,
         likesCount: 0,
         commentsCount: 0,
       };
@@ -86,11 +68,8 @@ const CreatePost = ({ navigation }) => {
             onChangeText={setContent}
             multiline
           />
-          <Button title="Pick an image or video from camera roll" onPress={pickMedia} />
-          {images.map((image, index) => (
-            <Image key={index} source={{ uri: image }} style={styles.image} />
-          ))}
-          {video && <Video source={{ uri: video }} style={styles.video} />}
+          <Button title="Pick an image from camera roll" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
           <Button title="Post" onPress={handleSubmit} />
         </View>
       </TouchableWithoutFeedback>
@@ -101,10 +80,10 @@ const CreatePost = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   innerContainer: {
     flex: 1,
+    justifyContent: 'center',
     padding: 20,
     backgroundColor: '#fff',
   },
@@ -115,28 +94,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
+    marginBottom: 20,
   },
   logo: {
     width: 300,
     height: 150,
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginBottom: 20,
   },
   input: {
-    height: 100,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 20,
+    width: '100%',
     padding: 10,
-    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 20,
+    backgroundColor: '#f9f9f9',
   },
   image: {
-    width: '100%',
-    height: 200,
-    marginBottom: 20,
-  },
-  video: {
     width: '100%',
     height: 200,
     marginBottom: 20,

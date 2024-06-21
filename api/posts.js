@@ -1,5 +1,5 @@
 // api/posts.js
-import { db } from '../firebase';
+import { db } from '../firebaseConfig';
 import { collection, doc, deleteDoc, getDocs, addDoc, updateDoc, getDoc, increment, serverTimestamp } from 'firebase/firestore';
 
 // Fetch all posts

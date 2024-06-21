@@ -1,12 +1,11 @@
-// screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image, RefreshControl, TouchableOpacity, Alert, Button } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { getPosts, deletePost, likePost } from '../api/posts';
-import { db, auth } from '../firebase';
+import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Corrected path to your logo image
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -15,94 +14,67 @@ const HomeScreen = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, 'RideScout/Data/Posts'),
-      (snapshot) => {
-        const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPosts(postsData);
-      },
-      (error) => {
-        console.error('Error fetching posts:', error);
-        Alert.alert('Error', 'There was an issue connecting to Firestore. Please try again later.');
-      }
-    );
+    const unsubscribe = onSnapshot(collection(db, 'posts'), (snapshot) => {
+      const fetchedPosts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPosts(fetchedPosts);
+    });
 
     return () => unsubscribe();
   }, []);
 
-  const handleDelete = async (postId) => {
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Simulate a network request for refreshing data
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
+
+  const handleDeletePost = async (postId) => {
     try {
-      const post = posts.find(post => post.id === postId);
-      if (post.userId === currentUser.uid) {
-        await deletePost(postId);
-      } else {
-        Alert.alert('Error', 'You can only delete your own posts.');
-      }
+      await deletePost(postId);
     } catch (error) {
-      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'There was an issue deleting the post.');
     }
   };
 
-  const handleLike = async (postId) => {
+  const handleLikePost = async (postId) => {
     try {
       await likePost(postId, currentUser.uid);
     } catch (error) {
-      console.error('Error liking post:', error);
+      Alert.alert('Error', 'There was an issue liking the post.');
     }
   };
 
-  const handleComment = (postId) => {
-    navigation.navigate('Comments', { postId });
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    const fetchPosts = async () => {
-      const data = await getPosts();
-      setPosts(data);
-      setRefreshing(false);
-    };
-    fetchPosts();
-  };
-
   const renderPost = ({ item }) => (
-    <TouchableOpacity onPress={() => navigation.navigate('PostDetail', { postId: item.id })} style={styles.postContainer}>
-      <View style={styles.postHeader}>
-        <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
-          <Text style={styles.postUser}>{item.userName}</Text>
+    <View style={styles.postContainer}>
+      <Text>{item.content}</Text>
+      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => handleLikePost(item.id)}>
+          <Icon name="thumbs-up" size={20} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.postTime}>{new Date(item.createdAt.toDate()).toLocaleString()}</Text>
-      </View>
-      <Text style={styles.postContent}>{item.content}</Text>
-      {item.imageUrls && item.imageUrls.map((url, index) => (
-        <Image key={index} source={{ uri: url }} style={styles.image} />
-      ))}
-      {item.videoUrl && <Video source={{ uri: item.videoUrl }} style={styles.video} />}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.actionButton}>
-          <Icon name="thumbs-up" size={20} color="blue" />
-          <Text>{item.likesCount || 0}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleComment(item.id)} style={styles.actionButton}>
-          <Icon name="comment" size={20} color="blue" />
-          <Text>{item.commentsCount || 0}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })}>
+          <Icon name="comment" size={20} color="#000" />
         </TouchableOpacity>
         {item.userId === currentUser.uid && (
-          <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-            <Icon name="trash" size={20} color="red" />
+          <TouchableOpacity onPress={() => handleDeletePost(item.id)}>
+            <Icon name="trash" size={20} color="#000" />
           </TouchableOpacity>
         )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <Image source={logo} style={styles.logo} />
-      <Button
-        title="Create Post"
-        onPress={() => navigation.navigate('CreatePost')}
-      />
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+        <Button title="Create Post" onPress={() => navigation.navigate('CreatePost')} />
+      </View>
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -116,54 +88,40 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5', // Ensure background color is correct
+    paddingHorizontal: 20,
   },
-  logo: {
-    width: 100,
-    height: 50,
-    alignSelf: 'center',
+  header: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10,
     marginBottom: 20,
   },
+  logo: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+  },
   postContainer: {
-    padding: 20,
-    marginVertical: 10,
-    backgroundColor: 'white',
-    borderRadius: 5,
-    borderColor: '#ccc',
+    padding: 10,
     borderWidth: 1,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  postUser: {
-    fontWeight: 'bold',
-  },
-  postTime: {
-    color: '#666',
-  },
-  postContent: {
-    marginVertical: 10,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
   },
   image: {
     width: '100%',
     height: 200,
-    marginVertical: 10,
+    marginTop: 10,
   },
-  video: {
-    width: '100%',
-    height: 200,
-    marginVertical: 10,
-  },
-  actionsContainer: {
+  actions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 10,
   },
 });
 

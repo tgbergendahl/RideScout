@@ -28,7 +28,7 @@ const LoginPage = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.innerContainer}>
-          <Image source={require('../assets/Ride scout (2).jpg')} style={styles.logo} />
+          <Image source={require('../assets/RideScout.jpg')} style={styles.logo} />
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -44,12 +44,15 @@ const LoginPage = ({ navigation }) => {
             onChangeText={setPassword}
             secureTextEntry
           />
-          <Button title="Login" onPress={handleLogin} />
+          <Button title="Login" onPress={handleLogin} color="black" />
           <Text style={styles.signUpText}>
             Don't have an account?{' '}
             <Text style={styles.signUpLink} onPress={() => navigation.navigate('SignupPage')}>
               Sign Up
             </Text>
+          </Text>
+          <Text style={styles.resetText} onPress={() => navigation.navigate('ResetPasswordPage')}>
+            Forgot Password?
           </Text>
         </View>
       </TouchableWithoutFeedback>
@@ -88,6 +91,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   signUpLink: {
+    color: 'blue',
+    textDecorationLine: 'underline',
+  },
+  resetText: {
+    marginTop: 10,
+    textAlign: 'center',
     color: 'blue',
     textDecorationLine: 'underline',
   },
