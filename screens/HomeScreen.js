@@ -1,11 +1,12 @@
+// screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Image, RefreshControl, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { getPosts, deletePost, likePost } from '../api/posts';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -14,13 +15,17 @@ const HomeScreen = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'RideScout/Data/Posts'), (snapshot) => {
-      const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(postsData);
-    }, (error) => {
-      console.error('Error fetching posts:', error);
-      Alert.alert('Error', 'There was an issue connecting to Firestore. Please try again later.');
-    });
+    const unsubscribe = onSnapshot(
+      collection(db, 'RideScout/Data/Posts'),
+      (snapshot) => {
+        const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPosts(postsData);
+      },
+      (error) => {
+        console.error('Error fetching posts:', error);
+        Alert.alert('Error', 'There was an issue connecting to Firestore. Please try again later.');
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -66,22 +71,25 @@ const HomeScreen = () => {
         <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}>
           <Text style={styles.postUser}>{item.userName}</Text>
         </TouchableOpacity>
-        <Text style={styles.postTime}>{new Date(item.timestamp).toLocaleString()}</Text>
+        <Text style={styles.postTime}>{new Date(item.createdAt.toDate()).toLocaleString()}</Text>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
-      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.postImage} />}
-      <View style={styles.actionContainer}>
+      {item.imageUrls && item.imageUrls.map((url, index) => (
+        <Image key={index} source={{ uri: url }} style={styles.image} />
+      ))}
+      {item.videoUrl && <Video source={{ uri: item.videoUrl }} style={styles.video} />}
+      <View style={styles.actionsContainer}>
         <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.actionButton}>
-          <Icon name="thumbs-up" size={20} color="#000" />
-          <Text>{item.likeCount || 0}</Text>
+          <Icon name="thumbs-up" size={20} color="blue" />
+          <Text>{item.likesCount || 0}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => handleComment(item.id)} style={styles.actionButton}>
-          <Icon name="comment" size={20} color="#000" />
-          <Text>{item.commentCount || 0}</Text>
+          <Icon name="comment" size={20} color="blue" />
+          <Text>{item.commentsCount || 0}</Text>
         </TouchableOpacity>
         {item.userId === currentUser.uid && (
           <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-            <Icon name="trash" size={20} color="#000" />
+            <Icon name="trash" size={20} color="red" />
           </TouchableOpacity>
         )}
       </View>
@@ -90,12 +98,11 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image source={logo} style={styles.logo} />
-      </View>
-      <TouchableOpacity style={styles.createPostButton} onPress={() => navigation.navigate('CreatePost')}>
-        <Text style={styles.createPostButtonText}>Create Post</Text>
-      </TouchableOpacity>
+      <Image source={logo} style={styles.logo} />
+      <Button
+        title="Create Post"
+        onPress={() => navigation.navigate('CreatePost')}
+      />
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -109,68 +116,50 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-  },
-  header: {
-    width: '100%',
-    height: 150, // Increased height to accommodate larger logo
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingTop: 10, // Added padding for better spacing
   },
   logo: {
-    width: 300, // Adjusted size
-    height: 150, // Adjusted size
-    resizeMode: 'contain', // Ensures the logo maintains its aspect ratio
-  },
-  createPostButton: {
-    backgroundColor: '#000',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  createPostButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    width: 100,
+    height: 50,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   postContainer: {
-    borderWidth: 1,
-    borderColor: '#ccc',
+    padding: 20,
+    marginVertical: 10,
+    backgroundColor: 'white',
     borderRadius: 5,
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f9f9f9',
+    borderColor: '#ccc',
+    borderWidth: 1,
   },
   postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   postUser: {
-    fontSize: 16,
     fontWeight: 'bold',
   },
   postTime: {
-    fontSize: 12,
-    color: '#888',
+    color: '#666',
   },
   postContent: {
-    fontSize: 14,
-    marginBottom: 10,
+    marginVertical: 10,
   },
-  postImage: {
+  image: {
     width: '100%',
     height: 200,
-    marginBottom: 10,
+    marginVertical: 10,
   },
-  actionContainer: {
+  video: {
+    width: '100%',
+    height: 200,
+    marginVertical: 10,
+  },
+  actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 10,
   },
   actionButton: {
     flexDirection: 'row',

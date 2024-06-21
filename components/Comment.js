@@ -1,7 +1,8 @@
+// components/Comment.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getComments, addComment } from '../api/comments'; // Adjust the path as necessary
+import { getComments, addComment } from '../api/comments';
 
 const Comment = ({ postId }) => {
   const [comments, setComments] = useState([]);

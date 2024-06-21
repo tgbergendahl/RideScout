@@ -1,14 +1,13 @@
+// screens/EditProfile.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { updateProfile } from '../api/users'; // Adjust the path as necessary
+import { updateProfile } from '../api/users';
 import * as ImagePicker from 'expo-image-picker';
 import defaultProfile from '../assets/defaultProfile.png'; // Ensure the correct path to your default profile image
 
 const EditProfile = ({ route }) => {
   const user = route.params?.user || {};
-  console.log('User data:', user);
-
   const [bio, setBio] = useState(user.bio || '');
   const [profileImage, setProfileImage] = useState(user.profileImage || null);
   const navigation = useNavigation();
@@ -19,7 +18,6 @@ const EditProfile = ({ route }) => {
       if (profileImage) {
         updatedData.profileImage = profileImage;
       }
-      console.log('Updated profile data:', updatedData);
       await updateProfile(user.id, updatedData);
       navigation.goBack();
     } catch (error) {

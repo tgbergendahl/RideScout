@@ -1,9 +1,14 @@
+// components/Post.js
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import Like from './Like'; // Make sure to adjust the path if necessary
+import Like from './Like';
+import { getAuth } from 'firebase/auth';
 
 const Post = ({ post, onComment, onDelete }) => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+
   return (
     <View style={styles.postItem}>
       <View style={styles.postHeader}>
@@ -18,7 +23,7 @@ const Post = ({ post, onComment, onDelete }) => {
           <Icon name="comment" size={20} color="blue" />
           <Text>{post.commentsCount || 0}</Text>
         </TouchableOpacity>
-        {post.userId === auth.currentUser.uid && (
+        {post.userId === currentUser.uid && (
           <TouchableOpacity onPress={() => onDelete(post.id)} style={styles.actionButton}>
             <Icon name="trash" size={20} color="red" />
           </TouchableOpacity>

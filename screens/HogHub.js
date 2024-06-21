@@ -1,8 +1,9 @@
+// screens/HogHub.js
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getHogs } from '../api/hogs';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const HogHub = () => {
   const [hogs, setHogs] = useState([]);

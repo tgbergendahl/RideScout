@@ -1,7 +1,8 @@
+// components/Like.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 
 const Like = ({ postId, initialLikes }) => {
   const [likes, setLikes] = useState(initialLikes);
@@ -28,14 +29,14 @@ const Like = ({ postId, initialLikes }) => {
     if (!liked) {
       await updateDoc(postRef, {
         likes: increment(1),
-        likedBy: currentUser.uid ? increment(1) : []
+        likedBy: currentUser.uid ? increment(1) : [],
       });
       setLikes(likes + 1);
       setLiked(true);
     } else {
       await updateDoc(postRef, {
         likes: increment(-1),
-        likedBy: currentUser.uid ? increment(-1) : []
+        likedBy: currentUser.uid ? increment(-1) : [],
       });
       setLikes(likes - 1);
       setLiked(false);

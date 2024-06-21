@@ -1,3 +1,4 @@
+// contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';

@@ -1,3 +1,4 @@
+// api/comments.js
 import { db } from '../firebase';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -24,7 +25,7 @@ export const addComment = async (postId, content, userId) => {
       postId,
       content,
       userId,
-      createdAt: serverTimestamp(),
+      createdAt: serverTimestamp()
     });
   } catch (error) {
     console.error('Error adding comment:', error);

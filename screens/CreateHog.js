@@ -1,10 +1,11 @@
+// screens/CreateHog.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const CreateHog = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -71,7 +72,7 @@ const CreateHog = ({ navigation }) => {
       </View>
       <TextInput
         style={styles.searchBar}
-        placeholder="Search makes, models, location etc."
+        placeholder="Search makes, models, location, etc."
         placeholderTextColor="#ccc"
       />
       <TextInput

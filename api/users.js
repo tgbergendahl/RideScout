@@ -1,3 +1,4 @@
+// api/users.js
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 

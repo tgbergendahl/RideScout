@@ -1,3 +1,4 @@
+// components/CustomHeader.js
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 
@@ -5,7 +6,7 @@ const CustomHeader = () => {
   return (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
-        <Image source={require('../assets/Ride scout (2).jpg')} style={styles.logo} />
+        <Image source={require('../assets/RideScout.jpg')} style={styles.logo} />
       </View>
     </View>
   );
@@ -14,20 +15,20 @@ const CustomHeader = () => {
 const styles = StyleSheet.create({
   header: {
     width: '100%',
-    height: 150, // Increased height to accommodate larger logo
+    height: 150,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
   },
   logoContainer: {
     position: 'absolute',
-    top: 10, // Adjust as needed to position logo correctly
+    top: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logo: {
-    width: 200, // Adjusted size
-    height: 100, // Adjusted size
+    width: 200,
+    height: 100,
     resizeMode: 'contain',
   },
 });

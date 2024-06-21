@@ -1,3 +1,4 @@
+// api/posts.js
 import { db } from '../firebase';
 import { collection, doc, deleteDoc, getDocs, addDoc, updateDoc, getDoc, increment, serverTimestamp } from 'firebase/firestore';
 
@@ -70,7 +71,7 @@ export const likePost = async (postId, userId) => {
 };
 
 // Add a comment to a post
-export const addComment = async (postId, comment) => {
+export const addCommentToPost = async (postId, comment) => {
   const postRef = doc(db, 'RideScout/Data/Posts', postId);
   try {
     const postDoc = await getDoc(postRef);
@@ -89,7 +90,7 @@ export const addComment = async (postId, comment) => {
 };
 
 // Fetch comments for a post
-export const getComments = async (postId) => {
+export const getPostComments = async (postId) => {
   try {
     const postDoc = await getDoc(doc(db, 'RideScout/Data/Posts', postId));
     if (postDoc.exists()) {

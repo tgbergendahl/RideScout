@@ -1,18 +1,20 @@
+// screens/CreatePost.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, Image, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { createPost } from '../api/posts';
-import { auth, storage } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import { getAuth, getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const CreatePost = ({ navigation }) => {
   const [content, setContent] = useState('');
-  const [image, setImage] = useState(null);
-  const currentUser = auth.currentUser;
+  const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
+  const currentUser = getAuth().currentUser;
+  const storage = getStorage();
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+  const pickMedia = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [4, 3],
@@ -20,25 +22,41 @@ const CreatePost = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri); // Update this line to access uri correctly
+      if (result.type === 'image') {
+        setImages([...images, result.assets[0].uri]);
+      } else if (result.type === 'video') {
+        setVideo(result.assets[0].uri);
+      }
     }
   };
 
   const handleSubmit = async () => {
-    let imageUrl = '';
+    let imageUrls = [];
+    let videoUrl = '';
+
     try {
-      if (image) {
+      for (let image of images) {
         const response = await fetch(image);
         const blob = await response.blob();
         const storageRef = ref(storage, `postImages/${currentUser.uid}/${Date.now()}`);
         await uploadBytes(storageRef, blob);
-        imageUrl = await getDownloadURL(storageRef);
+        const imageUrl = await getDownloadURL(storageRef);
+        imageUrls.push(imageUrl);
+      }
+
+      if (video) {
+        const response = await fetch(video);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `postVideos/${currentUser.uid}/${Date.now()}`);
+        await uploadBytes(storageRef, blob);
+        videoUrl = await getDownloadURL(storageRef);
       }
 
       const postData = {
         userId: currentUser.uid,
         content,
-        imageUrl,
+        imageUrls,
+        videoUrl,
         likesCount: 0,
         commentsCount: 0,
       };
@@ -68,8 +86,11 @@ const CreatePost = ({ navigation }) => {
             onChangeText={setContent}
             multiline
           />
-          <Button title="Pick an image from camera roll" onPress={pickImage} />
-          {image && <Image source={{ uri: image }} style={styles.image} />}
+          <Button title="Pick an image or video from camera roll" onPress={pickMedia} />
+          {images.map((image, index) => (
+            <Image key={index} source={{ uri: image }} style={styles.image} />
+          ))}
+          {video && <Video source={{ uri: video }} style={styles.video} />}
           <Button title="Post" onPress={handleSubmit} />
         </View>
       </TouchableWithoutFeedback>
@@ -89,15 +110,15 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 150, // Same height as in HomeScreen
+    height: 150,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
   },
   logo: {
-    width: 300, // Same width as in HomeScreen
-    height: 150, // Same height as in HomeScreen
+    width: 300,
+    height: 150,
     resizeMode: 'contain',
     alignSelf: 'center',
     marginBottom: 20,
@@ -108,9 +129,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     padding: 10,
-    textAlignVertical: 'top', // Ensures the text starts from the top
+    textAlignVertical: 'top',
   },
   image: {
+    width: '100%',
+    height: 200,
+    marginBottom: 20,
+  },
+  video: {
     width: '100%',
     height: 200,
     marginBottom: 20,

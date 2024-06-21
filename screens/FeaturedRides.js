@@ -1,8 +1,9 @@
+// screens/FeaturedRides.js
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, StyleSheet, Image, RefreshControl } from 'react-native';
 import Post from '../components/Post'; // Adjust the path as necessary
 import { getFeaturedRides } from '../api/rides';
-import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const FeaturedRides = () => {
   const [posts, setPosts] = useState([]);
@@ -46,8 +47,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   logo: {
-    width: 300, // Same width as in HomeScreen
-    height: 150, // Same height as in HomeScreen
+    width: 300,
+    height: 150,
     resizeMode: 'contain',
     alignSelf: 'center',
     marginBottom: 20,

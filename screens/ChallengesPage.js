@@ -1,3 +1,4 @@
+// screens/ChallengesPage.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
 import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
