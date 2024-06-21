@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, Button, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button, Image, TextInput, ScrollView, Alert } from 'react-native';
 import { getScenicSpots, createScenicSpot } from '../api/scenicSpots';
 import { auth, storage } from '../firebase';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,14 +8,17 @@ import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to y
 
 const ScenicSpots = ({ navigation }) => {
   const [spots, setSpots] = useState([]);
+  const [filteredSpots, setFilteredSpots] = useState([]);
   const [image, setImage] = useState(null);
   const [description, setDescription] = useState('');
+  const [searchText, setSearchText] = useState('');
   const currentUser = auth.currentUser;
 
   useEffect(() => {
     const fetchData = async () => {
       const data = await getScenicSpots();
       setSpots(data);
+      setFilteredSpots(data);
     };
 
     fetchData();
@@ -30,35 +33,62 @@ const ScenicSpots = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImage(result.uri);
+      setImage(result.assets[0].uri);
     }
   };
 
   const handleCreateSpot = async () => {
-    let imageUrl = '';
-    if (image) {
-      const response = await fetch(image);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `scenicSpotImages/${currentUser.uid}/${Date.now()}`);
-      await uploadBytes(storageRef, blob);
-      imageUrl = await getDownloadURL(storageRef);
+    try {
+      let imageUrl = '';
+      if (image) {
+        const response = await fetch(image);
+        const blob = await response.blob();
+        const storageRef = ref(storage, `scenicSpotImages/${currentUser.uid}/${Date.now()}`);
+        await uploadBytes(storageRef, blob);
+        imageUrl = await getDownloadURL(storageRef);
+      }
+
+      const spotData = {
+        userId: currentUser.uid,
+        description,
+        imageUrl,
+      };
+
+      await createScenicSpot(spotData);
+      Alert.alert('Success', 'Scenic spot created successfully!');
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'There was an issue creating the scenic spot. Please try again.');
+      console.error('Error creating scenic spot:', error);
     }
+  };
 
-    const spotData = {
-      userId: currentUser.uid,
-      description,
-      imageUrl,
-    };
-
-    await createScenicSpot(spotData);
-    navigation.goBack();
+  const handleSearch = (text) => {
+    setSearchText(text);
+    if (text) {
+      const filtered = spots.filter((spot) =>
+        spot.description.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredSpots(filtered);
+    } else {
+      setFilteredSpots(spots);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={logo} style={styles.logo} />
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+      </View>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search by location"
+        placeholderTextColor="#ccc"
+        value={searchText}
+        onChangeText={handleSearch}
+      />
       {currentUser.email === 'jared@ridescout.net' && (
-        <View>
+        <View style={styles.createSection}>
           <TextInput
             style={styles.input}
             placeholder="Description"
@@ -71,7 +101,7 @@ const ScenicSpots = ({ navigation }) => {
         </View>
       )}
       <FlatList
-        data={spots}
+        data={filteredSpots}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.spotItem}>
@@ -80,37 +110,60 @@ const ScenicSpots = ({ navigation }) => {
           </View>
         )}
       />
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
     padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10,
+    marginBottom: 20,
   },
   logo: {
-    width: 100,
-    height: 50,
+    width: 300,
+    height: 150,
+    resizeMode: 'contain',
     alignSelf: 'center',
+  },
+  searchBar: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
+    color: '#000',
+  },
+  createSection: {
     marginBottom: 20,
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
     borderWidth: 1,
-    marginBottom: 20,
+    borderColor: '#ccc',
     padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
   },
   spotItem: {
     padding: 20,
     marginVertical: 10,
-    backgroundColor: 'white',
+    backgroundColor: '#f9f9f9',
     borderRadius: 5,
   },
   image: {
     width: '100%',
     height: 200,
     marginTop: 10,
+    borderRadius: 10,
   },
 });
 

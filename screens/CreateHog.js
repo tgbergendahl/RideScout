@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
 const CreateHog = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -25,8 +26,8 @@ const CreateHog = ({ navigation }) => {
       quality: 1,
     });
 
-    if (!result.cancelled) {
-      setImages([...images, result.uri]);
+    if (!result.canceled) {
+      setImages([...images, result.assets[0].uri]);
     }
   };
 
@@ -65,6 +66,14 @@ const CreateHog = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
+      </View>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search makes, models, location etc."
+        placeholderTextColor="#ccc"
+      />
       <TextInput
         style={styles.input}
         placeholder="Title"
@@ -104,6 +113,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingTop: 10,
+    marginBottom: 20,
+  },
+  logo: {
+    width: 300,
+    height: 150,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+  },
+  searchBar: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
+    color: '#000',
   },
   input: {
     borderWidth: 1,

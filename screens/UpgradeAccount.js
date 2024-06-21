@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Alert, Image, Picker } from 'react-native';
+import { View, Text, Button, StyleSheet, Alert, Image, ScrollView } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { WebView } from 'react-native-webview';
+import { RadioButton } from 'react-native-paper'; // Ensure this import is correct
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import logo from '../assets/Ride_scout_2.jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/Ride scout (2).jpg'; // Ensure the correct path to your logo image
 
 const UpgradeAccount = () => {
   const auth = getAuth();
@@ -41,7 +43,7 @@ const UpgradeAccount = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Image source={logo} style={styles.logo} />
       <Text style={styles.title}>Upgrade Your Account</Text>
       <Text style={styles.description}>
@@ -49,10 +51,16 @@ const UpgradeAccount = () => {
       </Text>
       <View style={styles.selectionContainer}>
         <Text style={styles.label}>Select Upgrade Type:</Text>
-        <Picker selectedValue={type} style={styles.picker} onValueChange={(itemValue) => setType(itemValue)}>
-          <Picker.Item label="Certified Seller - $10/month" value="certified" />
-          <Picker.Item label="Super Certified Seller - $30/month" value="super" />
-        </Picker>
+        <RadioButton.Group onValueChange={value => setType(value)} value={type}>
+          <View style={styles.radioButton}>
+            <RadioButton value="certified" />
+            <Text style={styles.radioButtonLabel}>Certified Seller - $10/month</Text>
+          </View>
+          <View style={styles.radioButton}>
+            <RadioButton value="super" />
+            <Text style={styles.radioButtonLabel}>Super Certified Seller - $30/month</Text>
+          </View>
+        </RadioButton.Group>
       </View>
       <View style={styles.selectionContainer}>
         <Text style={styles.label}>Select Number of Months:</Text>
@@ -64,31 +72,33 @@ const UpgradeAccount = () => {
       </View>
       <Button title="Upgrade Now" onPress={() => setShowWebView(true)} color="#007BFF" />
       {showWebView && (
-        <WebView
-          source={{ uri: `http://localhost:3000/paypal?type=${type}&months=${months}` }}
-          style={{ flex: 1 }}
-          onNavigationStateChange={(event) => {
-            if (event.url.includes('success')) {
-              handlePaymentSuccess();
-            }
-          }}
-        />
+        <View style={{ height: 400, marginTop: 20 }}>
+          <WebView
+            source={{ uri: `http://localhost:3000/paypal?type=${type}&months=${months}` }}
+            style={{ flex: 1 }}
+            onNavigationStateChange={(event) => {
+              if (event.url.includes('success')) {
+                handlePaymentSuccess();
+              }
+            }}
+          />
+        </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     backgroundColor: '#fff',
+    alignItems: 'center',
   },
   logo: {
     width: 200,
     height: 100,
     resizeMode: 'contain',
-    alignSelf: 'center',
     marginBottom: 20,
   },
   title: {
@@ -105,6 +115,7 @@ const styles = StyleSheet.create({
   },
   selectionContainer: {
     marginBottom: 20,
+    width: '100%',
   },
   label: {
     fontSize: 16,
@@ -113,6 +124,14 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
+  },
+  radioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  radioButtonLabel: {
+    fontSize: 16,
   },
 });
 
