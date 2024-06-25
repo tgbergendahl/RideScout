@@ -6,26 +6,26 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import ErrorBoundary from './components/ErrorBoundary'; // Custom error boundary component
 
 import HomeScreen from './screens/HomeScreen';
-import ProfileScreen from './screens/Profile';
-import HogHubScreen from './screens/HogHub';
-import FeaturedRidesScreen from './screens/FeaturedRides';
-import ScenicSpotsScreen from './screens/ScenicSpots';
-import ChallengesPageScreen from './screens/ChallengesPage';
-import CreatePostScreen from './screens/CreatePost';
+import Profile from './screens/Profile';
+import HogHub from './screens/HogHub';
+import FeaturedRides from './screens/FeaturedRides';
+import ScenicSpots from './screens/ScenicSpots';
+import ChallengesPage from './screens/ChallengesPage';
+import CreatePost from './screens/CreatePost';
 import LoginPage from './screens/LoginPage';
 import SignupPage from './screens/SignupPage';
 import UpgradeAccount from './screens/UpgradeAccount';
-import ContactSellerScreen from './screens/ContactSeller';
-import CreateScenicSpotScreen from './screens/CreateScenicSpot';
-import CreateHogScreen from './screens/CreateHog';
-import EditProfileScreen from './screens/EditProfile';
-import CommentsScreen from './screens/Comments';
-import FollowersScreen from './screens/Followers';
-import FollowingScreen from './screens/Following';
+import ContactSeller from './screens/ContactSeller';
+import CreateScenicSpot from './screens/CreateScenicSpot';
+import CreateHog from './screens/CreateHog';
+import EditProfile from './screens/EditProfile';
+import Comments from './screens/Comments';
+import Followers from './screens/Followers';
+import Following from './screens/Following';
 import RiderDirectory from './screens/RiderDirectory';
 import RiderProfile from './screens/RiderProfile';
 import Inbox from './screens/Inbox';
-import NotificationsScreen from './screens/NotificationsScreen'; // Import NotificationsScreen
+import NotificationsScreen from './screens/NotificationsScreen';
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -43,22 +43,22 @@ function MainTabs() {
       />
       <Tab.Screen
         name="FeaturedRides"
-        component={FeaturedRidesScreen}
+        component={FeaturedRides}
         options={{ tabBarIcon: ({ color, size }) => <Icon name="star" color={color} size={size} /> }}
       />
       <Tab.Screen
         name="ScenicSpots"
-        component={ScenicSpotsScreen}
+        component={ScenicSpots}
         options={{ tabBarIcon: ({ color, size }) => <Icon name="map-marker" color={color} size={size} /> }}
       />
       <Tab.Screen
         name="HogHub"
-        component={HogHubScreen}
+        component={HogHub}
         options={{ tabBarIcon: ({ color, size }) => <Icon name="motorcycle" color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={Profile}
         options={{ tabBarIcon: ({ color, size }) => <Icon name="user" color={color} size={size} /> }}
       />
     </Tab.Navigator>
@@ -74,20 +74,20 @@ export default function App() {
             <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
             <Stack.Screen name="SignupPage" component={SignupPage} options={{ headerShown: false }} />
             <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-            <Stack.Screen name="ChallengesPage" component={ChallengesPageScreen} />
-            <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+            <Stack.Screen name="ChallengesPage" component={ChallengesPage} />
+            <Stack.Screen name="CreatePost" component={CreatePost} />
             <Stack.Screen name="UpgradeAccount" component={UpgradeAccount} />
-            <Stack.Screen name="ContactSeller" component={ContactSellerScreen} />
-            <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpotScreen} />
-            <Stack.Screen name="CreateHog" component={CreateHogScreen} />
-            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-            <Stack.Screen name="Comments" component={CommentsScreen} />
-            <Stack.Screen name="Followers" component={FollowersScreen} />
-            <Stack.Screen name="Following" component={FollowingScreen} />
+            <Stack.Screen name="ContactSeller" component={ContactSeller} />
+            <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpot} />
+            <Stack.Screen name="CreateHog" component={CreateHog} />
+            <Stack.Screen name="EditProfile" component={EditProfile} />
+            <Stack.Screen name="Comments" component={Comments} />
+            <Stack.Screen name="Followers" component={Followers} />
+            <Stack.Screen name="Following" component={Following} />
             <Stack.Screen name="RiderDirectory" component={RiderDirectory} />
             <Stack.Screen name="RiderProfile" component={RiderProfile} />
             <Stack.Screen name="Inbox" component={Inbox} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} /> {/* Add NotificationsScreen */}
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
