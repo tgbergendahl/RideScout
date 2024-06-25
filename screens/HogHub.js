@@ -4,9 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import { getHogs } from '../api/hogs';
 import logo from '../assets/RideScout.jpg';
 
+
 const HogHub = () => {
   const [hogs, setHogs] = useState([]);
   const navigation = useNavigation();
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -14,8 +16,10 @@ const HogHub = () => {
       setHogs(data);
     };
 
+
     fetchData();
   }, []);
+
 
   return (
     <View style={styles.container}>
@@ -43,6 +47,7 @@ const HogHub = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -81,5 +86,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+
 
 export default HogHub;

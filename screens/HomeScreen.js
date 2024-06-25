@@ -4,11 +4,13 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { getPosts, deletePost, likePost } from '../api/posts';
 import { db, auth } from '../firebaseConfig';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg'; // Corrected path to your logo image
+import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import logo from '../assets/RideScout.jpg';
+import defaultProfile from '../assets/defaultProfile.png';
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
+  const [users, setUsers] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const currentUser = auth.currentUser;
@@ -21,14 +23,27 @@ const HomeScreen = () => {
         ...doc.data()
       }));
       setPosts(fetchedPosts);
+      fetchUserData(fetchedPosts);
     });
 
     return () => unsubscribe();
   }, []);
 
+  const fetchUserData = async (posts) => {
+    const userIds = [...new Set(posts.map(post => post.userId))];
+    const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout/Data/Users', userId)));
+    const userDocs = await Promise.all(userPromises);
+    const usersData = {};
+    userDocs.forEach(userDoc => {
+      if (userDoc.exists()) {
+        usersData[userDoc.id] = userDoc.data();
+      }
+    });
+    setUsers(usersData);
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
-    // Simulate a network request for refreshing data
     setTimeout(() => {
       setRefreshing(false);
     }, 2000);
@@ -52,10 +67,26 @@ const HomeScreen = () => {
 
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
+      <View style={styles.userInfo}>
+        <Image
+          source={users[item.userId]?.profileImage ? { uri: users[item.userId].profileImage } : defaultProfile}
+          style={styles.profileImage}
+        />
+        <Text style={styles.username}>{users[item.userId]?.username || 'Unknown User'}</Text>
+      </View>
       <Text style={styles.postContent}>{item.content}</Text>
-      {item.imageUrls && item.imageUrls.map((url, index) => (
-        <Image key={index} source={{ uri: url }} style={styles.image} />
-      ))}
+      {item.imageUrls && item.imageUrls.length > 0 ? (
+        item.imageUrls.map((url, index) => (
+          <Image
+            key={index}
+            source={{ uri: url }}
+            style={styles.image}
+            onError={() => (e.target.src = 'Image not available')}
+          />
+        ))
+      ) : (
+        <Text>Image not available</Text>
+      )}
       <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
       <View style={styles.actions}>
         <TouchableOpacity onPress={() => handleLikePost(item.id)} style={styles.actionButton}>
@@ -122,6 +153,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     backgroundColor: '#fff',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   postContent: {
     fontSize: 16,

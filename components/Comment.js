@@ -1,42 +1,70 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { getComments, addComment } from '../api/comments';
+import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Comment = ({ postId }) => {
-  const [comments, setComments] = useState([]);
   const [comment, setComment] = useState('');
+  const [comments, setComments] = useState([]);
   const auth = getAuth();
+  const db = getFirestore();
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const commentsData = await getComments(postId);
+    const unsubscribe = onSnapshot(
+      collection(db, 'RideScout/Data/Comments'),
+      (snapshot) => {
+        const commentsData = snapshot.docs
+          .filter(doc => doc.data().postId === postId)
+          .map(doc => ({ id: doc.id, ...doc.data() }));
         setComments(commentsData);
-      } catch (error) {
-        console.error("Error fetching comments:", error);
+      },
+      (error) => {
+        console.error('Error fetching comments:', error);
       }
-    };
-    fetchComments();
-  }, [postId]);
+    );
+
+    return () => unsubscribe();
+  }, [postId, db]);
 
   const handleAddComment = async () => {
-    if (currentUser && comment.trim()) {
+    if (comment.trim()) {
       try {
-        await addComment(postId, comment.trim(), currentUser.uid);
+        await addDoc(collection(db, 'RideScout/Data/Comments'), {
+          postId,
+          userId: currentUser.uid,
+          content: comment,
+          createdAt: serverTimestamp(),
+          userName: currentUser.displayName || 'Unknown User',
+        });
         setComment('');
-        const commentsData = await getComments(postId);
-        setComments(commentsData);
       } catch (error) {
-        console.error("Error adding comment:", error);
+        console.error('Error adding comment:', error);
+        Alert.alert('Error', 'There was an issue adding your comment.');
       }
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.comment}>
-      <Text style={styles.commentText}>{item.content}</Text>
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await deleteDoc(doc(db, 'RideScout/Data/Comments', commentId));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      Alert.alert('Error', 'There was an issue deleting the comment.');
+    }
+  };
+
+  const renderComment = ({ item }) => (
+    <View style={styles.commentContainer}>
+      <Text style={styles.commentUser}>{item.userName}</Text>
+      <Text style={styles.commentContent}>{item.content}</Text>
+      <Text style={styles.commentTimestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
+      {item.userId === currentUser.uid && (
+        <TouchableOpacity onPress={() => handleDeleteComment(item.id)} style={styles.deleteButton}>
+          <Icon name="trash" size={20} color="#000" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -44,15 +72,14 @@ const Comment = ({ postId }) => {
     <View style={styles.container}>
       <FlatList
         data={comments}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListEmptyComponent={<Text>No comments yet.</Text>}
+        keyExtractor={(item) => item.id}
+        renderItem={renderComment}
       />
       <TextInput
-        style={styles.input}
-        placeholder="Add a comment"
         value={comment}
         onChangeText={setComment}
+        placeholder="Add a comment..."
+        style={styles.input}
       />
       <Button title="Post Comment" onPress={handleAddComment} />
     </View>
@@ -62,24 +89,35 @@ const Comment = ({ postId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
-  },
-  comment: {
     padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc'
-  },
-  commentText: {
-    fontSize: 16
   },
   input: {
-    width: '100%',
-    padding: 10,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 10
-  }
+    padding: 10,
+    marginBottom: 10,
+  },
+  commentContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  commentUser: {
+    fontWeight: 'bold',
+  },
+  commentContent: {
+    marginVertical: 5,
+  },
+  commentTimestamp: {
+    fontSize: 12,
+    color: '#999',
+  },
+  deleteButton: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+  },
 });
 
 export default Comment;

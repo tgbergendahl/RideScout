@@ -1,68 +1,57 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, storage, db } from '../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg';
+import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
 
 const CreatePost = ({ navigation }) => {
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState([]);
+  const [image, setImage] = useState(null);
   const currentUser = auth.currentUser;
 
-  const pickMedia = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsMultipleSelection: true,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1
-      });
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-      if (!result.canceled && result.assets.length > 0) {
-        setMedia([...media, ...result.assets.map(asset => asset.uri)]);
-      }
-    } catch (error) {
-      console.error("Error picking media:", error);
-      Alert.alert("Error", "There was an issue picking the media. Please try again.");
+    if (!result.canceled) {
+      setImage(result.assets[0].uri); // Update this line to access uri correctly
     }
   };
 
   const handleSubmit = async () => {
-    const mediaUrls = [];
+    let imageUrls = [];
+    if (image) {
+      const response = await fetch(image);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `postImages/${currentUser.uid}/${Date.now()}.jpg`);
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+      imageUrls.push(downloadURL);
+    }
+
+    const postData = {
+      userId: currentUser.uid,
+      content,
+      imageUrls,
+      createdAt: serverTimestamp(),
+      likesCount: 0,
+      commentsCount: 0,
+      likes: [],
+      comments: []
+    };
+
     try {
-      for (let uri of media) {
-        const response = await fetch(uri);
-        if (!response.ok) {
-          throw new Error(`Error fetching image: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const fileExtension = uri.split('.').pop();
-        const storageRef = ref(storage, `postMedia/${currentUser.uid}/${Date.now()}.${fileExtension}`);
-        await uploadBytes(storageRef, blob);
-        const downloadUrl = await getDownloadURL(storageRef);
-        mediaUrls.push(downloadUrl);
-      }
-
-      const postData = {
-        userId: currentUser.uid,
-        content,
-        mediaUrls,
-        createdAt: serverTimestamp(),
-        likesCount: 0,
-        commentsCount: 0,
-        likes: [],
-        comments: []
-      };
-
       await addDoc(collection(db, 'RideScout/Data/Posts'), postData);
       navigation.goBack();
     } catch (error) {
       console.error("Error creating post:", error);
-      Alert.alert('Error', `There was an issue creating the post. ${error.message}`);
+      Alert.alert('Error', 'There was an issue creating the post. Please try again.');
     }
   };
 
@@ -83,12 +72,8 @@ const CreatePost = ({ navigation }) => {
             onChangeText={setContent}
             multiline
           />
-          <Button title="Pick an image or video from camera roll" onPress={pickMedia} />
-          <View style={styles.mediaContainer}>
-            {media.map((uri, index) => (
-              <Image key={index} source={{ uri }} style={styles.image} />
-            ))}
-          </View>
+          <Button title="Pick an image from camera roll" onPress={pickImage} />
+          {image && <Image source={{ uri: image }} style={styles.image} />}
           <Button title="Post" onPress={handleSubmit} />
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -109,18 +94,17 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 150,
+    height: 80, // Adjusted height to accommodate larger logo
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingTop: 10
+    paddingTop: 10, // Added padding for better spacing
+    marginBottom: 20
   },
   logo: {
-    width: 300,
-    height: 150,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    marginBottom: 20
+    width: 200, // Adjusted size
+    height: 100, // Adjusted size
+    resizeMode: 'contain' // Ensures the logo maintains its aspect ratio
   },
   input: {
     height: 100,
@@ -130,16 +114,11 @@ const styles = StyleSheet.create({
     padding: 10,
     textAlignVertical: 'top'
   },
-  mediaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginVertical: 20
-  },
   image: {
-    width: '48%',
+    width: '100%',
     height: 200,
-    marginBottom: 20
+    marginBottom: 20,
+    borderRadius: 10
   }
 });
 
