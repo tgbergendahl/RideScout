@@ -18,6 +18,8 @@ import CreateScenicSpotScreen from './screens/CreateScenicSpot';
 import CreateHogScreen from './screens/CreateHog';
 import EditProfileScreen from './screens/EditProfile';
 import CommentsScreen from './screens/Comments';
+import FollowersScreen from './screens/Followers';
+import FollowingScreen from './screens/Following';
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
 
@@ -33,7 +35,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
-          ),
+          )
         }}
       />
       <Tab.Screen
@@ -42,7 +44,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="star" color={color} size={size} />
-          ),
+          )
         }}
       />
       <Tab.Screen
@@ -51,7 +53,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="map-marker" color={color} size={size} />
-          ),
+          )
         }}
       />
       <Tab.Screen
@@ -60,7 +62,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="motorcycle" color={color} size={size} />
-          ),
+          )
         }}
       />
       <Tab.Screen
@@ -69,7 +71,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="user" color={color} size={size} />
-          ),
+          )
         }}
       />
     </Tab.Navigator>
@@ -92,6 +94,8 @@ export default function App() {
           <Stack.Screen name="CreateHog" component={CreateHogScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="Comments" component={CommentsScreen} />
+          <Stack.Screen name="Followers" component={FollowersScreen} />
+          <Stack.Screen name="Following" component={FollowingScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

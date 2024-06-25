@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, Text } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, Text, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { createScenicSpot } from '../api/scenicSpots';
-import { auth } from '../firebaseConfig';
+import * as MailComposer from 'expo-mail-composer';
 import logo from '../assets/RideScout.jpg';
 
 const CreateScenicSpot = ({ navigation }) => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [photo, setPhoto] = useState(null);
-  const currentUser = auth.currentUser;
+  const [isBusiness, setIsBusiness] = useState(false);
 
   const handleChoosePhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -25,17 +24,31 @@ const CreateScenicSpot = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (currentUser.email !== 'jared@ridescout.net') {
-      Alert.alert('Unauthorized', 'Only Jared can create a scenic spot.');
+    if (!description || !location || !photo) {
+      Alert.alert('Error', 'Please fill in all fields and choose a photo.');
       return;
     }
 
+    const emailBody = `
+      Description: ${description}
+      Location: ${location}
+      Business: ${isBusiness ? 'Yes' : 'No'}
+    `;
+
+    const options = {
+      recipients: ['jared@ridescout.net'],
+      subject: 'Scenic Spot Inquiry',
+      body: emailBody,
+      attachments: [photo.uri],
+    };
+
     try {
-      await createScenicSpot({ description, location, photo });
+      await MailComposer.composeAsync(options);
+      Alert.alert('Success', 'Scenic spot inquiry sent successfully.');
       navigation.goBack();
     } catch (error) {
-      console.error('Error creating scenic spot:', error);
-      Alert.alert('Error', 'There was an issue creating the scenic spot. Please try again.');
+      console.error('Error sending email:', error);
+      Alert.alert('Error', 'There was an issue sending the email. Please try again.');
     }
   };
 
@@ -45,7 +58,7 @@ const CreateScenicSpot = ({ navigation }) => {
         <Image source={logo} style={styles.logo} />
       </View>
       <Text style={styles.inquiryText}>
-        If you have a business you'd like featured, email inquiries to thomas@ridescout.net
+        Submit this form to post your Scenic Spot
       </Text>
       <TextInput
         value={description}
@@ -59,9 +72,16 @@ const CreateScenicSpot = ({ navigation }) => {
         placeholder="Location"
         style={styles.input}
       />
+      <View style={styles.businessContainer}>
+        <Text style={styles.businessText}>Is this a business?</Text>
+        <Switch
+          value={isBusiness}
+          onValueChange={setIsBusiness}
+        />
+      </View>
       <Button title="Choose Photo" onPress={handleChoosePhoto} />
       {photo && <Image source={{ uri: photo.uri }} style={styles.image} />}
-      <Button title="Create Scenic Spot" onPress={handleSubmit} />
+      <Button title="Submit Scenic Spot" onPress={handleSubmit} />
     </ScrollView>
   );
 };
@@ -95,6 +115,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
     marginBottom: 20,
+  },
+  businessContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  businessText: {
+    fontSize: 16,
+    marginRight: 10,
   },
   image: {
     width: 100,

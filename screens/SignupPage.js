@@ -1,91 +1,87 @@
-// screens/SignupPage.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { View, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { auth, db } from '../firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import logo from '../assets/RideScout.jpg'; // Adjust the path if necessary
 
 const SignupPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const auth = getAuth();
-  const db = getFirestore();
 
   const handleSignup = async () => {
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // Create user document in Firestore
       await setDoc(doc(db, 'RideScout/Data/Users', user.uid), {
-        email: user.email,
+        email,
+        username,
         bio: '',
         followers: 0,
-        following: [],
-        profileImage: ''
+        following: 0,
+        profileImage: '',
       });
-
-      Alert.alert('Success', 'Account created successfully');
-      navigation.navigate('LoginPage');
+      navigation.replace('MainTabs');
     } catch (error) {
-      Alert.alert('Signup Error', error.message);
+      console.error('Error signing up:', error);
+      Alert.alert('Error', 'There was an issue signing up. Please try again later.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      <Button title="Sign Up" onPress={handleSignup} color="black" />
-      <Text style={styles.loginText}>
-        Already have an account?{' '}
-        <Text style={styles.loginLink} onPress={() => navigation.navigate('LoginPage')}>
-          Login
-        </Text>
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
+          <Image source={logo} style={styles.logo} />
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Username"
+          />
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email"
+          />
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry
+          />
+          <Button title="Sign Up" onPress={handleSignup} />
+          <Button
+            title="Already have an account? Log In"
+            onPress={() => navigation.navigate('LoginPage')}
+          />
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    textAlign: 'center',
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 200,
+    height: 100,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   input: {
     width: '100%',
@@ -93,16 +89,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 20,
-  },
-  loginText: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  loginLink: {
-    color: 'blue',
-    textDecorationLine: 'underline',
+    marginBottom: 10,
   },
 });
 

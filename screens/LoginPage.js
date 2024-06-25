@@ -1,59 +1,61 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { View, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { auth, db } from '../firebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import logo from '../assets/RideScout.jpg'; // Adjust the path if necessary
 
 const LoginPage = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Username or email
   const [password, setPassword] = useState('');
 
-  const auth = getAuth();
-
   const handleLogin = async () => {
-    if (email && password) {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        navigation.navigate('MainTabs');
-      } catch (error) {
-        Alert.alert('Login Error', error.message);
+    try {
+      let email = identifier;
+      if (!identifier.includes('@')) {
+        const q = query(collection(db, 'RideScout/Data/Users'), where('username', '==', identifier));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          email = userDoc.data().email;
+        } else {
+          throw new Error('No user found with that username');
+        }
       }
-    } else {
-      Alert.alert('Error', 'Please enter both email and password.');
+      await signInWithEmailAndPassword(auth, email, password);
+      navigation.replace('MainTabs');
+    } catch (error) {
+      console.error('Error logging in:', error);
+      Alert.alert('Error', 'There was an issue logging in. Please try again later.');
     }
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.innerContainer}>
-          <Image source={require('../assets/RideScout.jpg')} style={styles.logo} />
+        <View style={styles.inner}>
+          <Image source={logo} style={styles.logo} />
           <TextInput
             style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+            value={identifier}
+            onChangeText={setIdentifier}
+            placeholder="Username or Email"
           />
           <TextInput
             style={styles.input}
-            placeholder="Password"
             value={password}
             onChangeText={setPassword}
+            placeholder="Password"
             secureTextEntry
           />
-          <Button title="Login" onPress={handleLogin} color="black" />
-          <Text style={styles.signUpText}>
-            Don't have an account?{' '}
-            <Text style={styles.signUpLink} onPress={() => navigation.navigate('SignupPage')}>
-              Sign Up
-            </Text>
-          </Text>
-          <Text style={styles.resetText} onPress={() => navigation.navigate('ResetPasswordPage')}>
-            Forgot Password?
-          </Text>
+          <Button title="Login" onPress={handleLogin} />
+          <Button
+            title="Don't have an account? Sign Up"
+            onPress={() => navigation.navigate('SignupPage')}
+          />
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -63,18 +65,18 @@ const LoginPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
   },
-  innerContainer: {
+  inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
   },
   logo: {
     width: 200,
-    height: 200,
-    marginBottom: 40,
+    height: 100,
+    resizeMode: 'contain',
     alignSelf: 'center',
+    marginBottom: 20,
   },
   input: {
     width: '100%',
@@ -82,23 +84,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 20,
-    backgroundColor: '#f9f9f9',
-  },
-  signUpText: {
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  signUpLink: {
-    color: 'blue',
-    textDecorationLine: 'underline',
-  },
-  resetText: {
-    marginTop: 10,
-    textAlign: 'center',
-    color: 'blue',
-    textDecorationLine: 'underline',
+    marginBottom: 10,
   },
 });
 

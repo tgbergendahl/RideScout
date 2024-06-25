@@ -1,4 +1,3 @@
-// screens/PostDetail.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -21,8 +20,12 @@ const PostDetail = () => {
 
   useEffect(() => {
     const fetchPost = async () => {
-      const postData = await getPostById(postId);
-      setPost(postData);
+      try {
+        const postData = await getPostById(postId);
+        setPost(postData);
+      } catch (error) {
+        console.error('Error fetching post:', error);
+      }
     };
 
     const unsubscribe = onSnapshot(

@@ -1,29 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, StyleSheet, Image, RefreshControl } from 'react-native';
-import { getPosts } from '../api/posts';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+import Post from '../components/Post';
 import logo from '../assets/RideScout.jpg';
 
 const FeaturedRides = () => {
   const [posts, setPosts] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const data = await getPosts();
-      setPosts(data.sort((a, b) => b.likesCount - a.likesCount).slice(0, 15));
-    };
+  const fetchFeaturedPosts = async () => {
+    const oneWeekAgo = Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+    const postsQuery = query(
+      collection(db, 'RideScout/Data/Posts'),
+      where('createdAt', '>=', oneWeekAgo),
+      orderBy('createdAt', 'desc'),
+      orderBy('likesCount', 'desc'),
+      limit(20)
+    );
+    const querySnapshot = await getDocs(postsQuery);
+    const fetchedPosts = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setPosts(fetchedPosts);
+  };
 
-    fetchPosts();
+  useEffect(() => {
+    fetchFeaturedPosts();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    const fetchPosts = async () => {
-      const data = await getPosts();
-      setPosts(data.sort((a, b) => b.likesCount - a.likesCount).slice(0, 15));
-      setRefreshing(false);
-    };
-    fetchPosts();
+    fetchFeaturedPosts().then(() => setRefreshing(false));
   };
 
   return (

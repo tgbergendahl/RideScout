@@ -3,18 +3,25 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Post = ({ post, onLike, onComment, onDelete }) => {
+  if (!post) {
+    console.error("Post data is undefined");
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.content}>{post.content}</Text>
-      {post.imageUrls && post.imageUrls.length > 0 && (
+      {post.imageUrls && post.imageUrls.length > 0 ? (
         <Image source={{ uri: post.imageUrls[0] }} style={styles.image} />
+      ) : (
+        <Text style={styles.noImageText}>No image available</Text>
       )}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.button} onPress={onLike}>
+        <TouchableOpacity style={styles.button} onPress={() => onLike(post.id)}>
           <Icon name="thumb-up" size={20} color="white" />
           <Text style={styles.buttonText}>Like</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={onComment}>
+        <TouchableOpacity style={styles.button} onPress={() => onComment(post.id)}>
           <Icon name="comment" size={20} color="white" />
           <Text style={styles.buttonText}>Comment</Text>
         </TouchableOpacity>
@@ -46,6 +53,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 5,
+    marginBottom: 10,
+  },
+  noImageText: {
+    color: 'grey',
+    fontStyle: 'italic',
+    textAlign: 'center',
     marginBottom: 10,
   },
   actions: {

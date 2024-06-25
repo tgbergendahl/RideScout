@@ -1,59 +1,70 @@
-// screens/EditProfile.js
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { updateProfile } from '../api/users';
+import { View, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Switch, Text } from 'react-native';
+import { auth, db } from '../firebaseConfig';
+import { doc, updateDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
-import defaultProfile from '../assets/defaultProfile.png'; // Ensure the correct path to your default profile image
+import { uploadImageAsync } from '../utils/uploadImage';
 
-const EditProfile = ({ route }) => {
-  const user = route.params?.user || {};
+const EditProfile = ({ navigation, route }) => {
+  const { user } = route.params;
   const [bio, setBio] = useState(user.bio || '');
-  const [profileImage, setProfileImage] = useState(user.profileImage || null);
-  const navigation = useNavigation();
+  const [profileImage, setProfileImage] = useState(user.profileImage || '');
+  const [username, setUsername] = useState(user.username || '');
+  const [hideEmail, setHideEmail] = useState(user.hideEmail || false);
 
-  const handleSave = async () => {
+  const handleUpdateProfile = async () => {
     try {
-      const updatedData = { bio };
-      if (profileImage) {
-        updatedData.profileImage = profileImage;
-      }
-      await updateProfile(user.id, updatedData);
-      navigation.goBack();
+      const userRef = doc(db, 'RideScout/Data/Users', auth.currentUser.uid);
+      await updateDoc(userRef, {
+        bio,
+        profileImage,
+        username,
+        hideEmail
+      });
+      Alert.alert('Success', 'Profile updated successfully.');
+      navigation.navigate('Profile');
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'There was an issue updating your profile. Please try again.');
+      Alert.alert('Error', 'There was an issue updating your profile. Please try again later.');
     }
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
+      aspect: [4, 3],
+      quality: 1
     });
 
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+    if (!result.cancelled) {
+      const uploadedUrl = await uploadImageAsync(result.uri);
+      setProfileImage(uploadedUrl);
     }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={pickImage}>
-        <Image
-          source={profileImage ? { uri: profileImage } : defaultProfile}
-          style={styles.profileImage}
-        />
-      </TouchableOpacity>
       <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Bio"
         value={bio}
         onChangeText={setBio}
-        placeholder="Edit your bio"
-        style={styles.input}
       />
-      <Button title="Finish Editing" onPress={handleSave} />
+      <TouchableOpacity onPress={pickImage}>
+        <Image source={profileImage ? { uri: profileImage } : require('../assets/defaultProfile.png')} style={styles.profileImage} />
+      </TouchableOpacity>
+      <View style={styles.switchContainer}>
+        <Text>Hide Email</Text>
+        <Switch value={hideEmail} onValueChange={setHideEmail} />
+      </View>
+      <Button title="Save" onPress={handleUpdateProfile} />
     </View>
   );
 };
@@ -61,23 +72,29 @@ const EditProfile = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    alignSelf: 'center',
-    marginBottom: 20,
+    padding: 20
   },
   input: {
-    borderColor: 'gray',
-    borderWidth: 1,
+    width: '100%',
     padding: 10,
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
     borderRadius: 5,
+    marginBottom: 10
   },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignSelf: 'center',
+    marginBottom: 20
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  }
 });
 
 export default EditProfile;
