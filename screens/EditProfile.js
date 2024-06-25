@@ -1,3 +1,4 @@
+// EditProfile.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Switch, Text } from 'react-native';
 import { auth, db } from '../firebaseConfig';
@@ -19,7 +20,7 @@ const EditProfile = ({ navigation, route }) => {
         bio,
         profileImage,
         username,
-        hideEmail
+        hideEmail,
       });
       Alert.alert('Success', 'Profile updated successfully.');
       navigation.navigate('Profile');
@@ -34,7 +35,7 @@ const EditProfile = ({ navigation, route }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1
+      quality: 1,
     });
 
     if (!result.cancelled) {
@@ -72,7 +73,7 @@ const EditProfile = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
   },
   input: {
     width: '100%',
@@ -80,21 +81,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 10
+    marginBottom: 10,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     alignSelf: 'center',
-    marginBottom: 20
+    marginBottom: 20,
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20
-  }
+    marginBottom: 20,
+  },
 });
 
 export default EditProfile;

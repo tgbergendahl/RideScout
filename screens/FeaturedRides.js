@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, Image, RefreshControl } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Image, RefreshControl, Button } from 'react-native';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import Post from '../components/Post';
 import logo from '../assets/RideScout.jpg';
 
-const FeaturedRides = () => {
+const FeaturedRides = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -40,6 +40,7 @@ const FeaturedRides = () => {
       <View style={styles.header}>
         <Image source={logo} style={styles.logo} />
       </View>
+      <Button title="Find a Rider" onPress={() => navigation.navigate('RiderDirectory')} />
       {posts.length === 0 ? (
         <Text>No featured rides at the moment, check back soon!</Text>
       ) : (

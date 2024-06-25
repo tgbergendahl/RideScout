@@ -1,3 +1,4 @@
+// utils/uploadImage.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 

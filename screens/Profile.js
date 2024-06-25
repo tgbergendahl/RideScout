@@ -1,3 +1,4 @@
+// Profile.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
   },
   header: {
     width: '100%',
@@ -179,70 +180,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingTop: 10
+    paddingTop: 10,
   },
   logo: {
     width: 200,
     height: 100,
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginBottom: 20
+    marginBottom: 20,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     alignSelf: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   username: {
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 5
+    marginBottom: 5,
   },
   email: {
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 5
+    marginBottom: 5,
   },
   bio: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   followContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10
+    marginBottom: 10,
   },
   followCount: {
     fontSize: 16,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20
+    marginBottom: 20,
   },
   editProfileButton: {
     backgroundColor: '#000',
     padding: 10,
-    borderRadius: 5
+    borderRadius: 5,
   },
   editProfileButtonText: {
     color: '#fff',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   signOutButton: {
     backgroundColor: '#000',
     padding: 10,
-    borderRadius: 5
+    borderRadius: 5,
   },
   signOutButtonText: {
     color: '#fff',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   upgradeAccountButton: {
     backgroundColor: '#fff',
@@ -250,34 +251,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
     borderRadius: 5,
-    marginBottom: 20
+    marginBottom: 20,
   },
   upgradeAccountButtonText: {
     color: '#000',
     fontWeight: 'bold',
-    textAlign: 'center'
+    textAlign: 'center',
   },
   postItem: {
     backgroundColor: '#f9f9f9',
     padding: 10,
     borderRadius: 5,
-    marginBottom: 10
+    marginBottom: 10,
   },
   image: {
     width: '100%',
     height: 200,
     borderRadius: 10,
-    marginTop: 10
+    marginTop: 10,
   },
   actionContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 10
+    marginTop: 10,
   },
   actionButton: {
     flexDirection: 'row',
-    alignItems: 'center'
-  }
+    alignItems: 'center',
+  },
 });
 
 export default Profile;

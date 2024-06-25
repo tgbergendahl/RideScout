@@ -1,11 +1,12 @@
+// UpgradeAccount.js
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert, Image, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { WebView } from 'react-native-webview';
-import { RadioButton } from 'react-native-paper'; // Ensure this import is correct
+import { RadioButton } from 'react-native-paper';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg';
 
 const UpgradeAccount = () => {
   const auth = getAuth();
@@ -47,7 +48,7 @@ const UpgradeAccount = () => {
       <Image source={logo} style={styles.logo} />
       <Text style={styles.title}>Upgrade Your Account</Text>
       <Text style={styles.description}>
-        Upgrading your account to be a CertifiedSeller adds a blue check mark to your profile and means that you can sell up to seven (7) items on the marketplace at once, as opposed to three (3) at a time for normal users. Upgrading to a SuperCertifiedSeller comes with a bronze checkmark and allows you to list up to thirty (30) items on the marketplace at once, and is recommended for businesses. As a SuperCertifiedSeller shows that they are a valuable member of RideScout, the team will promote them to silver or gold.
+        Upgrading your account to be a CertifiedSeller adds a blue check mark to your profile and means that you can sell up to seven (7) items on the marketplace at once as opposed to three (3) at a time for normal users. Upgrading to a SuperCertifiedSeller comes with a bronze checkmark and allows you to list up to thirty (30) items on the marketplace at once and is recommended for businesses. As a SuperCertifiedSeller shows that they are a valuable member of RideScout the team will promote them to silver or gold.
       </Text>
       <View style={styles.selectionContainer}>
         <Text style={styles.label}>Select Upgrade Type:</Text>

@@ -20,6 +20,9 @@ import EditProfileScreen from './screens/EditProfile';
 import CommentsScreen from './screens/Comments';
 import FollowersScreen from './screens/Followers';
 import FollowingScreen from './screens/Following';
+import RiderDirectory from './screens/RiderDirectory';
+import RiderProfile from './screens/RiderProfile';
+import Inbox from './screens/Inbox';
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
 
@@ -35,7 +38,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
-          )
+          ),
         }}
       />
       <Tab.Screen
@@ -44,7 +47,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="star" color={color} size={size} />
-          )
+          ),
         }}
       />
       <Tab.Screen
@@ -53,7 +56,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="map-marker" color={color} size={size} />
-          )
+          ),
         }}
       />
       <Tab.Screen
@@ -62,7 +65,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="motorcycle" color={color} size={size} />
-          )
+          ),
         }}
       />
       <Tab.Screen
@@ -71,7 +74,7 @@ function MainTabs() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="user" color={color} size={size} />
-          )
+          ),
         }}
       />
     </Tab.Navigator>
@@ -96,6 +99,9 @@ export default function App() {
           <Stack.Screen name="Comments" component={CommentsScreen} />
           <Stack.Screen name="Followers" component={FollowersScreen} />
           <Stack.Screen name="Following" component={FollowingScreen} />
+          <Stack.Screen name="RiderDirectory" component={RiderDirectory} />
+          <Stack.Screen name="RiderProfile" component={RiderProfile} />
+          <Stack.Screen name="Inbox" component={Inbox} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
