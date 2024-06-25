@@ -25,6 +25,7 @@ import FollowingScreen from './screens/Following';
 import RiderDirectory from './screens/RiderDirectory';
 import RiderProfile from './screens/RiderProfile';
 import Inbox from './screens/Inbox';
+import NotificationsScreen from './screens/NotificationsScreen'; // Import NotificationsScreen
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -86,6 +87,7 @@ export default function App() {
             <Stack.Screen name="RiderDirectory" component={RiderDirectory} />
             <Stack.Screen name="RiderProfile" component={RiderProfile} />
             <Stack.Screen name="Inbox" component={Inbox} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} /> {/* Add NotificationsScreen */}
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

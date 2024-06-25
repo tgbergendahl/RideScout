@@ -1,5 +1,5 @@
 import { db } from '../firebaseConfig';
-import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 
 // Fetch comments for a specific post
 export const getComments = async (postId) => {
@@ -26,6 +26,14 @@ export const addComment = async (postId, content, userId) => {
       userId,
       createdAt: serverTimestamp()
     });
+    // Update comment count in the post
+    const postRef = doc(db, 'RideScout/Data/Posts', postId);
+    const postDoc = await getDoc(postRef);
+    if (postDoc.exists()) {
+      const postData = postDoc.data();
+      const commentsCount = (postData.commentsCount || 0) + 1;
+      await updateDoc(postRef, { commentsCount });
+    }
   } catch (error) {
     console.error('Error adding comment:', error);
   }

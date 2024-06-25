@@ -72,7 +72,7 @@ const HomeScreen = () => {
           source={users[item.userId]?.profileImage ? { uri: users[item.userId].profileImage } : defaultProfile}
           style={styles.profileImage}
         />
-        <Text style={styles.username}>{users[item.userId]?.username || 'Unknown User'}</Text>
+        <Text style={styles.username}>{users[item.userId]?.username || 'User not found'}</Text>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       {item.imageUrls && item.imageUrls.length > 0 ? (

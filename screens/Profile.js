@@ -1,4 +1,3 @@
-// Profile.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -85,6 +84,10 @@ const Profile = () => {
     navigation.navigate('Following', { userId: currentUser.uid });
   };
 
+  const navigateToNotifications = () => {
+    navigation.navigate('Notifications', { userId: currentUser.uid });
+  };
+
   if (!currentUser) {
     return (
       <View>
@@ -105,6 +108,47 @@ const Profile = () => {
         return 'user';
     }
   };
+
+  const renderPost = ({ item }) => (
+    <View style={styles.postContainer}>
+      <View style={styles.userInfo}>
+        <Image
+          source={userData?.profileImage ? { uri: userData.profileImage } : defaultProfile}
+          style={styles.profileImage}
+        />
+        <Text style={styles.username}>{userData?.username || 'User not found'}</Text>
+      </View>
+      <Text style={styles.postContent}>{item.content}</Text>
+      {item.imageUrls && item.imageUrls.length > 0 ? (
+        item.imageUrls.map((url, index) => (
+          <Image
+            key={index}
+            source={{ uri: url }}
+            style={styles.image}
+            onError={() => (e.target.src = 'Image not available')}
+          />
+        ))
+      ) : (
+        <Text>Image not available</Text>
+      )}
+      <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.actionButton}>
+          <Icon name="thumbs-up" size={20} color="#000" />
+          <Text>{item.likesCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })} style={styles.actionButton}>
+          <Icon name="comment" size={20} color="#000" />
+          <Text>{item.commentsCount}</Text>
+        </TouchableOpacity>
+        {item.userId === currentUser.uid && (
+          <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+            <Icon name="trash" size={20} color="#000" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -131,6 +175,9 @@ const Profile = () => {
         <TouchableOpacity onPress={() => navigation.navigate('EditProfile', { user: userData })} style={styles.editProfileButton}>
           <Text style={styles.editProfileButtonText}>Edit Profile</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={navigateToNotifications} style={styles.notificationsButton}>
+          <Text style={styles.notificationsButtonText}>Notifications</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
@@ -141,27 +188,7 @@ const Profile = () => {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.postItem}>
-            <Text>{item.content}</Text>
-            {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.image} />}
-            <View style={styles.actionContainer}>
-              <TouchableOpacity onPress={() => handleLike(item.id)} style={styles.actionButton}>
-                <Icon name="thumbs-up" size={20} color="#000" />
-                <Text>{item.likeCount || 0}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleComment(item.id)} style={styles.actionButton}>
-                <Icon name="comment" size={20} color="#000" />
-                <Text>{item.commentCount || 0}</Text>
-              </TouchableOpacity>
-              {item.userId === currentUser.uid && (
-                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                  <Icon name="trash" size={20} color="#000" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
+        renderItem={renderPost}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     </View>
@@ -236,6 +263,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  notificationsButton: {
+    backgroundColor: '#000',
+    padding: 10,
+    borderRadius: 5,
+  },
+  notificationsButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   signOutButton: {
     backgroundColor: '#000',
     padding: 10,
@@ -258,19 +294,44 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  postItem: {
-    backgroundColor: '#f9f9f9',
-    padding: 10,
-    borderRadius: 5,
+  postContainer: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  postContent: {
+    fontSize: 16,
+    color: '#333',
     marginBottom: 10,
   },
   image: {
     width: '100%',
     height: 200,
-    borderRadius: 10,
     marginTop: 10,
+    borderRadius: 10,
   },
-  actionContainer: {
+  timestamp: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 5,
+  },
+  actions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
