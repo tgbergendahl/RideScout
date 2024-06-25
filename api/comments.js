@@ -1,4 +1,3 @@
-// api/comments.js
 import { db } from '../firebaseConfig';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 

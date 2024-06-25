@@ -1,8 +1,7 @@
-// contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { app, auth, db } from '../firebaseConfig'; // Ensure this import is correct
+import { app, auth, db } from '../firebaseConfig';
 
 const AuthContext = createContext();
 
@@ -15,13 +14,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setIsCertifiedSeller(userData.isCertifiedSeller || false);
-          setIsSuperCertifiedSeller(userData.isSuperCertifiedSeller || false);
+        try {
+          const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsCertifiedSeller(userData.isCertifiedSeller || false);
+            setIsSuperCertifiedSeller(userData.isSuperCertifiedSeller || false);
+          }
+          setUser(user);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
         }
-        setUser(user);
       } else {
         setUser(null);
       }

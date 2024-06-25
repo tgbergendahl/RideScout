@@ -1,4 +1,3 @@
-// components/Comment.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
@@ -12,18 +11,26 @@ const Comment = ({ postId }) => {
 
   useEffect(() => {
     const fetchComments = async () => {
-      const commentsData = await getComments(postId);
-      setComments(commentsData);
+      try {
+        const commentsData = await getComments(postId);
+        setComments(commentsData);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      }
     };
     fetchComments();
   }, [postId]);
 
   const handleAddComment = async () => {
     if (currentUser && comment.trim()) {
-      await addComment(postId, comment.trim(), currentUser.uid);
-      setComment('');
-      const commentsData = await getComments(postId); // Re-fetch comments to update the list
-      setComments(commentsData);
+      try {
+        await addComment(postId, comment.trim(), currentUser.uid);
+        setComment('');
+        const commentsData = await getComments(postId);
+        setComments(commentsData);
+      } catch (error) {
+        console.error("Error adding comment:", error);
+      }
     }
   };
 
@@ -55,15 +62,15 @@ const Comment = ({ postId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 20
   },
   comment: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: '#ccc'
   },
   commentText: {
-    fontSize: 16,
+    fontSize: 16
   },
   input: {
     width: '100%',
@@ -71,8 +78,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 10,
-  },
+    marginBottom: 10
+  }
 });
 
 export default Comment;

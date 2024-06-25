@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Comment from '../components/Comment';
 
 const CommentScreen = ({ route }) => {
@@ -15,8 +15,8 @@ const CommentScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-  },
+    padding: 20
+  }
 });
 
 export default CommentScreen;

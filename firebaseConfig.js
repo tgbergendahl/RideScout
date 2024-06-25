@@ -27,7 +27,7 @@ try {
   storage = getStorage(app);
   console.log("Firebase initialized successfully");
 } catch (error) {
-  console.error("Error initializing Firebase: ", error);
+  console.error("Error initializing Firebase:", error);
 }
 
 export { db, auth, storage };

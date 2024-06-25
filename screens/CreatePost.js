@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth, storage, db } from '../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg';
 
 const CreatePost = ({ navigation }) => {
   const [content, setContent] = useState('');
@@ -18,14 +18,14 @@ const CreatePost = ({ navigation }) => {
         allowsMultipleSelection: true,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 1
       });
 
       if (!result.canceled && result.assets.length > 0) {
         setMedia([...media, ...result.assets.map(asset => asset.uri)]);
       }
     } catch (error) {
-      console.error("Error picking media: ", error);
+      console.error("Error picking media:", error);
       Alert.alert("Error", "There was an issue picking the media. Please try again.");
     }
   };
@@ -61,7 +61,7 @@ const CreatePost = ({ navigation }) => {
       await addDoc(collection(db, 'RideScout/Data/Posts'), postData);
       navigation.goBack();
     } catch (error) {
-      console.error("Error creating post: ", error);
+      console.error("Error creating post:", error);
       Alert.alert('Error', `There was an issue creating the post. ${error.message}`);
     }
   };
@@ -99,13 +99,13 @@ const CreatePost = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
   innerContainer: {
     flexGrow: 1,
     padding: 20,
     backgroundColor: '#fff',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   header: {
     width: '100%',
@@ -113,14 +113,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingTop: 10,
+    paddingTop: 10
   },
   logo: {
     width: 300,
     height: 150,
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 20
   },
   input: {
     height: 100,
@@ -128,19 +128,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     padding: 10,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top'
   },
   mediaContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginVertical: 20,
+    marginVertical: 20
   },
   image: {
     width: '48%',
     height: 200,
-    marginBottom: 20,
-  },
+    marginBottom: 20
+  }
 });
 
 export default CreatePost;

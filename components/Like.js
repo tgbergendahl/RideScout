@@ -1,4 +1,3 @@
-// components/Like.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAuth } from 'firebase/auth';
@@ -13,12 +12,16 @@ const Like = ({ postId, initialLikes }) => {
 
   useEffect(() => {
     const checkIfLiked = async () => {
-      const postDoc = await getDoc(doc(db, 'RideScout/Data/Posts', postId));
-      if (postDoc.exists()) {
-        const postData = postDoc.data();
-        if (postData.likedBy && postData.likedBy.includes(currentUser.uid)) {
-          setLiked(true);
+      try {
+        const postDoc = await getDoc(doc(db, 'RideScout/Data/Posts', postId));
+        if (postDoc.exists()) {
+          const postData = postDoc.data();
+          if (postData.likedBy && postData.likedBy.includes(currentUser.uid)) {
+            setLiked(true);
+          }
         }
+      } catch (error) {
+        console.error("Error checking if post is liked:", error);
       }
     };
     checkIfLiked();
@@ -26,20 +29,27 @@ const Like = ({ postId, initialLikes }) => {
 
   const handleLike = async () => {
     const postRef = doc(db, 'RideScout/Data/Posts', postId);
-    if (!liked) {
-      await updateDoc(postRef, {
-        likes: increment(1),
-        likedBy: currentUser.uid ? increment(1) : [],
-      });
-      setLikes(likes + 1);
-      setLiked(true);
-    } else {
-      await updateDoc(postRef, {
-        likes: increment(-1),
-        likedBy: currentUser.uid ? increment(-1) : [],
-      });
-      setLikes(likes - 1);
-      setLiked(false);
+    try {
+      const postDoc = await getDoc(postRef);
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        let likes = postData.likes || [];
+        if (!likes.includes(currentUser.uid)) {
+          likes.push(currentUser.uid);
+          await updateDoc(postRef, { likesCount: increment(1), likes });
+          setLikes(likes.length);
+          setLiked(true);
+        } else {
+          likes = likes.filter(id => id !== currentUser.uid);
+          await updateDoc(postRef, { likesCount: increment(-1), likes });
+          setLikes(likes.length);
+          setLiked(false);
+        }
+      } else {
+        console.error(`Post with ID ${postId} does not exist`);
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
     }
   };
 
@@ -58,17 +68,17 @@ const Like = ({ postId, initialLikes }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   liked: {
-    color: 'blue',
+    color: 'blue'
   },
   unliked: {
-    color: 'gray',
+    color: 'gray'
   },
   likeCount: {
-    marginLeft: 10,
-  },
+    marginLeft: 10
+  }
 });
 
 export default Like;

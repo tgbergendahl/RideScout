@@ -1,11 +1,10 @@
-// screens/CreateHog.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import logo from '../assets/RideScout.jpg'; // Ensure the correct path to your logo image
+import logo from '../assets/RideScout.jpg';
 
 const CreateHog = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -24,7 +23,7 @@ const CreateHog = ({ navigation }) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 1
     });
 
     if (!result.canceled) {
@@ -39,27 +38,37 @@ const CreateHog = ({ navigation }) => {
       const imageUrls = [];
 
       for (let image of images) {
-        const response = await fetch(image);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `hogImages/${user.uid}/${Date.now()}.jpg`);
-        await uploadBytes(storageRef, blob);
-        const imageUrl = await getDownloadURL(storageRef);
-        imageUrls.push(imageUrl);
+        try {
+          const response = await fetch(image);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `hogImages/${user.uid}/${Date.now()}.jpg`);
+          await uploadBytes(storageRef, blob);
+          const imageUrl = await getDownloadURL(storageRef);
+          imageUrls.push(imageUrl);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          Alert.alert('Error', 'There was an issue uploading an image. Please try again.');
+        }
       }
 
-      await addDoc(collection(db, 'RideScout/Data/Hogs'), {
-        userId: user.uid,
-        title,
-        category,
-        price,
-        description,
-        imageUrls,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(collection(db, 'RideScout/Data/Hogs'), {
+          userId: user.uid,
+          title,
+          category,
+          price,
+          description,
+          imageUrls,
+          createdAt: serverTimestamp()
+        });
 
-      setUploading(false);
-      Alert.alert('Success', 'Listing created successfully!');
-      navigation.navigate('HogHub');
+        setUploading(false);
+        Alert.alert('Success', 'Listing created successfully!');
+        navigation.navigate('HogHub');
+      } catch (error) {
+        console.error('Error creating listing:', error);
+        Alert.alert('Error', 'There was an issue creating the listing. Please try again.');
+      }
     } else {
       Alert.alert('Error', 'Please fill in all fields');
     }
@@ -114,7 +123,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
   header: {
     width: '100%',
@@ -123,13 +132,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
-    marginBottom: 20,
+    marginBottom: 20
   },
   logo: {
     width: 300,
     height: 150,
     resizeMode: 'contain',
-    alignSelf: 'center',
+    alignSelf: 'center'
   },
   searchBar: {
     borderWidth: 1,
@@ -137,21 +146,21 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginBottom: 20,
-    color: '#000',
+    color: '#000'
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 10,
     borderRadius: 5,
-    marginBottom: 20,
+    marginBottom: 20
   },
   image: {
     width: '100%',
     height: 200,
     marginBottom: 20,
-    borderRadius: 10,
-  },
+    borderRadius: 10
+  }
 });
 
 export default CreateHog;
