@@ -26,6 +26,8 @@ import RiderDirectory from './screens/RiderDirectory';
 import RiderProfile from './screens/RiderProfile';
 import Inbox from './screens/Inbox';
 import NotificationsScreen from './screens/NotificationsScreen';
+import RideScoutStore from './screens/RideScoutStore'; // Import the new screen
+import ProductDetail from './screens/ProductDetail';
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -88,6 +90,8 @@ export default function App() {
             <Stack.Screen name="RiderProfile" component={RiderProfile} />
             <Stack.Screen name="Inbox" component={Inbox} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="RideScoutStore" component={RideScoutStore} />
+            <Stack.Screen name="ProductDetail" component={ProductDetail} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

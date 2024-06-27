@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, Image, Button, TouchableOpacity, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { getHogs } from '../api/hogs';
 import logo from '../assets/RideScout.jpg';
-
 
 const HogHub = () => {
   const [hogs, setHogs] = useState([]);
   const navigation = useNavigation();
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -16,10 +15,8 @@ const HogHub = () => {
       setHogs(data);
     };
 
-
     fetchData();
   }, []);
-
 
   return (
     <View style={styles.container}>
@@ -30,6 +27,10 @@ const HogHub = () => {
         title="Create Hog"
         onPress={() => navigation.navigate('CreateHog')}
       />
+      <TouchableOpacity style={styles.shopButton} onPress={() => navigation.navigate('RideScoutStore')}>
+        <Icon name="shopping-cart" size={20} color="#fff" />
+        <Text style={styles.shopButtonText}>Shop RideScout</Text>
+      </TouchableOpacity>
       <FlatList
         data={hogs}
         keyExtractor={(item) => item.id}
@@ -47,7 +48,6 @@ const HogHub = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -70,6 +70,20 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     alignSelf: 'center',
   },
+  shopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'black',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 10,
+  },
+  shopButtonText: {
+    color: '#fff',
+    marginLeft: 10,
+    fontSize: 16,
+  },
   hogItem: {
     padding: 20,
     marginVertical: 10,
@@ -86,6 +100,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
 
 export default HogHub;
