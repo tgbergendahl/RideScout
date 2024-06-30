@@ -1,4 +1,3 @@
-// EditProfile.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Switch, Text } from 'react-native';
 import { auth, db } from '../firebaseConfig';
@@ -8,12 +7,15 @@ import { uploadImageAsync } from '../utils/uploadImage';
 
 const EditProfile = ({ navigation, route }) => {
   const { user } = route.params;
-  const [bio, setBio] = useState(user.bio || '');
-  const [profileImage, setProfileImage] = useState(user.profileImage || '');
-  const [username, setUsername] = useState(user.username || '');
-  const [hideEmail, setHideEmail] = useState(user.hideEmail || false);
+  console.log('EditProfile route.params.user:', user);
+
+  const [bio, setBio] = useState(user?.bio || '');
+  const [profileImage, setProfileImage] = useState(user?.profileImage || '');
+  const [username, setUsername] = useState(user?.username || '');
+  const [hideEmail, setHideEmail] = useState(user?.hideEmail || false);
 
   const handleUpdateProfile = async () => {
+    console.log('Updating profile...');
     try {
       const userRef = doc(db, 'RideScout/Data/Users', auth.currentUser.uid);
       await updateDoc(userRef, {
@@ -22,6 +24,7 @@ const EditProfile = ({ navigation, route }) => {
         username,
         hideEmail,
       });
+      console.log('Profile updated successfully');
       Alert.alert('Success', 'Profile updated successfully.');
       navigation.navigate('Profile');
     } catch (error) {
@@ -31,6 +34,7 @@ const EditProfile = ({ navigation, route }) => {
   };
 
   const pickImage = async () => {
+    console.log('Picking image...');
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -40,6 +44,7 @@ const EditProfile = ({ navigation, route }) => {
 
     if (!result.cancelled) {
       const uploadedUrl = await uploadImageAsync(result.uri);
+      console.log('Image uploaded:', uploadedUrl);
       setProfileImage(uploadedUrl);
     }
   };

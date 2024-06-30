@@ -17,6 +17,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (currentUser) {
+      console.log("Current user found:", currentUser.uid);
       fetchData();
     } else {
       console.error("No current user found");
@@ -25,14 +26,20 @@ const Profile = () => {
 
   const fetchData = async () => {
     try {
+      console.log('Fetching data...');
       const data = await getPosts();
-      setPosts(data.filter(post => post.userId === currentUser.uid));
+      if (data) {
+        setPosts(data.filter(post => post.userId === currentUser.uid));
+      } else {
+        console.error('No posts data available');
+      }
 
       const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
-        setUserData(userDoc.data());
-        console.log('User Data:', userDoc.data());
+        const userData = userDoc.data();
+        setUserData(userData);
+        console.log('User Data:', userData);
       } else {
         console.error("No user data found in Firestore");
         Alert.alert('Error', 'No user data found in Firestore');

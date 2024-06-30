@@ -7,6 +7,7 @@ import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
+import fallbackImage from '../assets/thispostwontload.png'; // Importing the new fallback image
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -22,6 +23,7 @@ const HomeScreen = () => {
         id: doc.id,
         ...doc.data()
       }));
+      console.log("Fetched posts:", fetchedPosts);
       setPosts(fetchedPosts);
       fetchUserData(fetchedPosts);
     });
@@ -30,7 +32,9 @@ const HomeScreen = () => {
   }, []);
 
   const fetchUserData = async (posts) => {
-    const userIds = [...new Set(posts.map(post => post.userId))];
+    const validPosts = posts.filter(post => post.userId); // Filter out posts with empty userId
+    const userIds = [...new Set(validPosts.map(post => post.userId))];
+    console.log("User IDs to fetch:", userIds);
     const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout/Data/Users', userId)));
     const userDocs = await Promise.all(userPromises);
     const usersData = {};
@@ -39,6 +43,7 @@ const HomeScreen = () => {
         usersData[userDoc.id] = userDoc.data();
       }
     });
+    console.log("Fetched user data:", usersData);
     setUsers(usersData);
   };
 
@@ -52,7 +57,9 @@ const HomeScreen = () => {
   const handleDeletePost = async (postId) => {
     try {
       await deletePost(postId);
+      console.log(`Post ${postId} deleted successfully`);
     } catch (error) {
+      console.error("Error deleting post:", error);
       Alert.alert('Error', 'There was an issue deleting the post.');
     }
   };
@@ -60,7 +67,9 @@ const HomeScreen = () => {
   const handleLikePost = async (postId) => {
     try {
       await likePost(postId, currentUser.uid);
+      console.log(`Post ${postId} liked by user ${currentUser.uid}`);
     } catch (error) {
+      console.error("Error liking post:", error);
       Alert.alert('Error', 'There was an issue liking the post.');
     }
   };
@@ -79,9 +88,9 @@ const HomeScreen = () => {
         item.imageUrls.map((url, index) => (
           <Image
             key={index}
-            source={{ uri: url }}
+            source={url ? { uri: url } : fallbackImage}
             style={styles.image}
-            onError={() => (e.target.src = 'Image not available')}
+            defaultSource={fallbackImage} // Set the fallback image here
           />
         ))
       ) : (
@@ -110,9 +119,9 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={logo} style={styles.logo} />
-        <View style={styles.buttonContainer}>
-          <Button title="Create Post" onPress={() => navigation.navigate('CreatePost')} />
-        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('CreatePost')} style={styles.createPostButton}>
+          <Text style={styles.createPostButtonText}>Create Post</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={posts}
@@ -136,7 +145,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
-    marginBottom: 10,
+    marginBottom: -10,  // Adjusted for aesthetic reasons
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
@@ -145,11 +154,20 @@ const styles = StyleSheet.create({
     height: 100,
     resizeMode: 'contain',
   },
-  buttonContainer: {
-    marginTop: 10,
+  createPostButton: {
+    marginTop: -19,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#000',
+    borderRadius: 5,
+  },
+  createPostButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   postContainer: {
-    padding: 15,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     backgroundColor: '#fff',
