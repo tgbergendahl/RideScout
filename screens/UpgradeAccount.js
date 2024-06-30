@@ -1,14 +1,15 @@
-// UpgradeAccount.js
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Alert, Image, ScrollView } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { WebView } from 'react-native-webview';
+import { View, Text, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import DropDownPicker from 'react-native-dropdown-picker';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import logo from '../assets/RideScout.jpg';
+import silverCheckmark from '../assets/silver_checkmark.png';
+import goldCheckmark from '../assets/gold_checkmark.png';
 
-const UpgradeAccount = () => {
+const UpgradeAccount = ({ navigation }) => {
   const auth = getAuth();
   const db = getFirestore();
   const user = auth.currentUser;
@@ -16,6 +17,17 @@ const UpgradeAccount = () => {
   const [type, setType] = useState('certified');
   const [months, setMonths] = useState(1);
   const [showWebView, setShowWebView] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState(
+    Array.from({ length: 24 }, (_, i) => ({ label: `${i + 1} month${i > 0 ? 's' : ''}`, value: i + 1 }))
+  );
+  const [message, setMessage] = useState('');
+
+  const initialOptions = {
+    'client-id': 'ASxx84UqDdYC-bfdY_ajTGTi_TIfVHpF1oRmeUG9_uy1muW-qzXpcOog0PQrl54UocXqy23NtHoDaOPj', // Replace with your actual client ID
+    'currency': 'USD',
+    'disable-funding': 'credit,card',
+  };
 
   const handleUpgrade = async () => {
     if (!user) {
@@ -24,8 +36,8 @@ const UpgradeAccount = () => {
     }
 
     const userDocRef = doc(db, 'RideScout/Data/Users', user.uid);
-    const updates = type === 'certified' ? { isCertifiedSeller: true } : { isSuperCertifiedSeller: true };
-    const displayName = type === 'certified' ? 'CertifiedSeller' : 'SuperCertifiedSeller';
+    const updates = type === 'certified' ? { isCertifiedSeller: true } : { isCertifiedDealer: true };
+    const displayName = type === 'certified' ? 'CertifiedSeller' : 'CertifiedDealer';
 
     try {
       await updateDoc(userDocRef, updates);
@@ -43,48 +55,117 @@ const UpgradeAccount = () => {
     handleUpgrade();
   };
 
+  const handleCreateOrder = async (data, actions) => {
+    try {
+      const cost = type === 'certified' ? 8 : 20;
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cart: [
+            {
+              id: type === 'certified' ? 'certified_seller' : 'certified_dealer',
+              quantity: months,
+              price: cost,
+            },
+          ],
+        }),
+      });
+
+      const orderData = await response.json();
+      if (orderData.id) {
+        return orderData.id;
+      } else {
+        throw new Error('Could not create PayPal order');
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      setMessage(`Could not initiate PayPal Checkout...${error}`);
+    }
+  };
+
+  const handleApprove = async (data, actions) => {
+    try {
+      const response = await fetch(`/api/orders/${data.orderID}/capture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const orderData = await response.json();
+      if (orderData.status === 'COMPLETED') {
+        handlePaymentSuccess();
+        setMessage(`Transaction completed successfully!`);
+      } else {
+        throw new Error('Payment was not successful');
+      }
+    } catch (error) {
+      console.error('Error capturing order:', error);
+      setMessage(`Sorry, your transaction could not be processed...${error}`);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Image source={logo} style={styles.logo} />
       <Text style={styles.title}>Upgrade Your Account</Text>
       <Text style={styles.description}>
-        Upgrading your account to be a CertifiedSeller adds a blue check mark to your profile and means that you can sell up to seven (7) items on the marketplace at once as opposed to three (3) at a time for normal users. Upgrading to a SuperCertifiedSeller comes with a bronze checkmark and allows you to list up to thirty (30) items on the marketplace at once and is recommended for businesses. As a SuperCertifiedSeller shows that they are a valuable member of RideScout the team will promote them to silver or gold.
+        The default account "Rider" allows up to three listings at a time on HogHub. By upgrading your account to CertifiedSeller, you'll have a silver checkmark and be able to post up to seven listings at the same time. This is recommended for people who regularly flip bikes and gear. If you are a dealership, you may want to upgrade to CertifiedDealer, allowing up to thirty listings at once. In doing so, you will receive the gold checkmark.
       </Text>
       <View style={styles.selectionContainer}>
         <Text style={styles.label}>Select Upgrade Type:</Text>
         <RadioButton.Group onValueChange={value => setType(value)} value={type}>
           <View style={styles.radioButton}>
             <RadioButton value="certified" />
-            <Text style={styles.radioButtonLabel}>Certified Seller - $10/month</Text>
+            <Text style={styles.radioButtonLabel}>Certified Seller - $8/month</Text>
+            <Image source={silverCheckmark} style={styles.checkmark} />
           </View>
           <View style={styles.radioButton}>
-            <RadioButton value="super" />
-            <Text style={styles.radioButtonLabel}>Super Certified Seller - $30/month</Text>
+            <RadioButton value="dealer" />
+            <Text style={styles.radioButtonLabel}>Certified Dealer - $20/month</Text>
+            <Image source={goldCheckmark} style={styles.checkmark} />
           </View>
         </RadioButton.Group>
       </View>
       <View style={styles.selectionContainer}>
         <Text style={styles.label}>Select Number of Months:</Text>
-        <Picker selectedValue={months} style={styles.picker} onValueChange={(itemValue) => setMonths(itemValue)}>
-          {[...Array(36)].map((_, i) => (
-            <Picker.Item key={i + 1} label={`${i + 1}`} value={i + 1} />
-          ))}
-        </Picker>
+        <DropDownPicker
+          open={open}
+          value={months}
+          items={items}
+          setOpen={setOpen}
+          setValue={setMonths}
+          setItems={setItems}
+          containerStyle={{ height: 40 }}
+          style={{ backgroundColor: '#fafafa' }}
+          dropDownStyle={{ backgroundColor: '#fafafa' }}
+        />
       </View>
-      <Button title="Upgrade Now" onPress={() => setShowWebView(true)} color="#007BFF" />
+      <TouchableOpacity style={styles.upgradeButton} onPress={() => setShowWebView(true)}>
+        <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+      </TouchableOpacity>
       {showWebView && (
-        <View style={{ height: 400, marginTop: 20 }}>
-          <WebView
-            source={{ uri: `http://localhost:3000/paypal?type=${type}&months=${months}` }}
-            style={{ flex: 1 }}
-            onNavigationStateChange={(event) => {
-              if (event.url.includes('success')) {
-                handlePaymentSuccess();
-              }
-            }}
-          />
+        <View style={{ height: 400, marginTop: 20, width: '100%' }}>
+          <PayPalScriptProvider options={initialOptions}>
+            <PayPalButtons
+              style={{ layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' }}
+              createOrder={handleCreateOrder}
+              onApprove={handleApprove}
+              onError={(err) => {
+                console.error('PayPal error:', err);
+                setMessage('There was an issue processing the payment. Please try again.');
+              }}
+            />
+            {message && <Text>{message}</Text>}
+          </PayPalScriptProvider>
         </View>
       )}
+      <TouchableOpacity onPress={() => navigation.navigate('RideScoutDisclaimer')}>
+        <Text style={styles.disclaimerLink}>View Disclaimer and Guidelines</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -94,13 +175,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: '#fff',
-    alignItems: 'center',
   },
   logo: {
     width: 200,
     height: 100,
     resizeMode: 'contain',
     marginBottom: 20,
+    alignSelf: 'center',
   },
   title: {
     fontSize: 24,
@@ -110,7 +191,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 20,
     paddingHorizontal: 10,
   },
@@ -122,10 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
   },
-  picker: {
-    height: 50,
-    width: '100%',
-  },
   radioButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -133,6 +210,30 @@ const styles = StyleSheet.create({
   },
   radioButtonLabel: {
     fontSize: 16,
+    marginRight: 10,
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+  },
+  upgradeButton: {
+    backgroundColor: '#000',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  disclaimerLink: {
+    color: '#007BFF',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });
 

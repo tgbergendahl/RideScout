@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -28,6 +29,7 @@ import Inbox from './screens/Inbox';
 import NotificationsScreen from './screens/NotificationsScreen';
 import RideScoutStore from './screens/RideScoutStore'; // Import the new screen
 import ProductDetail from './screens/ProductDetail';
+import RideScoutDisclaimer from './screens/RideScoutDisclaimer'; // Import the disclaimer screen
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -92,6 +94,7 @@ export default function App() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="RideScoutStore" component={RideScoutStore} />
             <Stack.Screen name="ProductDetail" component={ProductDetail} />
+            <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

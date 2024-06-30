@@ -186,7 +186,7 @@ const Profile = () => {
         </TouchableOpacity>
       </View>
       <TouchableOpacity onPress={() => navigation.navigate('UpgradeAccount')} style={styles.upgradeAccountButton}>
-        <Text style={styles.upgradeAccountButtonText}>Upgrade to Certified Seller</Text>
+        <Text style={styles.upgradeAccountButtonText}>Upgrade Account</Text>
       </TouchableOpacity>
       <FlatList
         data={posts}

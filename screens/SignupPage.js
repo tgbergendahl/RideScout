@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, TouchableOpacity, Text } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -61,6 +61,9 @@ const SignupPage = ({ navigation }) => {
             title="Already have an account? Log In"
             onPress={() => navigation.navigate('LoginPage')}
           />
+          <TouchableOpacity onPress={() => navigation.navigate('RideScoutDisclaimer')}>
+            <Text style={styles.disclaimerLink}>View Disclaimer and Guidelines</Text>
+          </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -90,6 +93,12 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 5,
     marginBottom: 10,
+  },
+  disclaimerLink: {
+    color: '#007BFF',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginTop: 10,
   },
 });
 

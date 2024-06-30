@@ -3,9 +3,8 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
-const fetch = require('node-fetch');
 
-const { ASxx84UqDdYC-bfdY_ajTGTi_TIfVHpF1oRmeUG9_uy1muW-qzXpcOog0PQrl54UocXqy23NtHoDaOPj, PAYPAL_CLIENT_SECRET, PORT = 3000 } = process.env;
+const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 3000 } = process.env;
 const base = 'https://api-m.sandbox.paypal.com';
 
 const app = express();
@@ -56,6 +55,7 @@ app.post('/signup', async (req, res) => {
  * @see https://developer.paypal.com/api/rest/authentication/
  */
 const generateAccessToken = async () => {
+  const fetch = (await import('node-fetch')).default;
   try {
     if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
       throw new Error('MISSING_API_CREDENTIALS');
@@ -112,6 +112,7 @@ const createOrder = async (cart) => {
     ],
   };
 
+  const fetch = (await import('node-fetch')).default;
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
@@ -144,6 +145,7 @@ const captureOrder = async (orderID) => {
   const accessToken = await generateAccessToken();
   const url = `${base}/v2/checkout/orders/${orderID}/capture`;
 
+  const fetch = (await import('node-fetch')).default;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
