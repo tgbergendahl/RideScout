@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, RefreshControl, Alert, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import { getPosts, deletePost, likePost } from '../api/posts';
@@ -26,7 +26,7 @@ const Profile = () => {
   const fetchData = async () => {
     try {
       const data = await getPosts();
-      setPosts(data.filter(post => post.userId === currentUser.uid));
+      setPosts(data.filter(post => post.userId === currentUser.uid).sort((a, b) => new Date(b.createdAt.seconds * 1000) - new Date(a.createdAt.seconds * 1000)));
 
       const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
       const userDoc = await getDoc(userRef);
@@ -114,9 +114,9 @@ const Profile = () => {
       <View style={styles.userInfo}>
         <Image
           source={userData?.profileImage ? { uri: userData.profileImage } : defaultProfile}
-          style={styles.profileImage}
+          style={styles.profileImageSmall}
         />
-        <Text style={styles.username}>{userData?.username || 'User not found'}</Text>
+        <Text style={styles.usernameSmall}>{userData?.username || 'User not found'}</Text>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       {item.imageUrls && item.imageUrls.length > 0 ? (
@@ -151,7 +151,10 @@ const Profile = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.header}>
         <Image source={logo} style={styles.logo} />
       </View>
@@ -189,9 +192,9 @@ const Profile = () => {
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        scrollEnabled={false} // Disable FlatList's own scrolling to make ScrollView handle it
       />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -217,14 +220,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     alignSelf: 'center',
     marginBottom: 10,
   },
   username: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
@@ -305,13 +308,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  profileImage: {
+  profileImageSmall: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginRight: 10,
   },
-  username: {
+  usernameSmall: {
     fontSize: 16,
     fontWeight: 'bold',
   },
