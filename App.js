@@ -19,7 +19,7 @@ import ContactSeller from './screens/ContactSeller';
 import CreateScenicSpot from './screens/CreateScenicSpot';
 import CreateHog from './screens/CreateHog';
 import EditProfile from './screens/EditProfile';
-import Comments from './screens/Comments';
+import CommentScreen from './screens/CommentScreen';
 import Followers from './screens/Followers';
 import Following from './screens/Following';
 import RiderDirectory from './screens/RiderDirectory';
@@ -83,7 +83,7 @@ export default function App() {
             <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpot} />
             <Stack.Screen name="CreateHog" component={CreateHog} />
             <Stack.Screen name="EditProfile" component={EditProfile} />
-            <Stack.Screen name="Comments" component={Comments} />
+            <Stack.Screen name="CommentScreen" component={CommentScreen} />
             <Stack.Screen name="Followers" component={Followers} />
             <Stack.Screen name="Following" component={Following} />
             <Stack.Screen name="RiderDirectory" component={RiderDirectory} />

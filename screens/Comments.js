@@ -1,67 +1,111 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
-import { getComments, addComment } from '../api/comments'; // Adjust the path as necessary
+import { View, Text, FlatList, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { addComment, getComments } from '../api/comments';
+import { db, auth } from '../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 
-const Comments = ({ route }) => {
+const Comments = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
   const { postId } = route.params;
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [userData, setUserData] = useState({});
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const fetchComments = async () => {
-      const data = await getComments(postId);
-      setComments(data);
-    };
-
     fetchComments();
-  }, [postId]);
+    fetchUserData();
+  }, []);
 
-  const handleAddComment = async () => {
-    if (newComment.trim()) {
-      await addComment(postId, newComment);
-      setNewComment('');
-      const data = await getComments(postId);
-      setComments(data);
+  const fetchComments = async () => {
+    try {
+      const commentsData = await getComments(postId);
+      setComments(commentsData);
+      console.log('Fetched comments:', commentsData); // Log fetched comments
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      Alert.alert('Error', 'There was an issue fetching comments. Please try again later.');
     }
   };
+
+  const fetchUserData = async () => {
+    try {
+      const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
+        console.log('User Data:', userDoc.data()); // Log user data
+      } else {
+        console.error("No user data found in Firestore");
+        Alert.alert('Error', 'No user data found in Firestore');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      Alert.alert('Error', 'There was an issue fetching user data. Please try again later.');
+    }
+  };
+
+  const handleAddComment = async () => {
+    try {
+      await addComment(postId, currentUser.uid, newComment);
+      setNewComment('');
+      fetchComments(); // Refresh comments after adding a new one
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      Alert.alert('Error', 'There was an issue adding your comment. Please try again later.');
+    }
+  };
+
+  const renderComment = ({ item }) => (
+    <View style={styles.commentContainer}>
+      <Text style={styles.commentText}>{item.text}</Text>
+      <Text style={styles.commentAuthor}>{item.username}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
         data={comments}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.commentItem}>
-            <Text>{item.content}</Text>
-          </View>
-        )}
+        renderItem={renderComment}
       />
       <TextInput
+        style={styles.input}
+        placeholder="Add a comment"
         value={newComment}
         onChangeText={setNewComment}
-        placeholder="Add a comment"
-        style={styles.input}
       />
-      <Button title="Add Comment" onPress={handleAddComment} />
+      <Button title="Post Comment" onPress={handleAddComment} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
   },
-  commentItem: {
+  commentContainer: {
     padding: 10,
-    marginBottom: 10,
-    backgroundColor: 'white',
-    borderRadius: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  commentText: {
+    fontSize: 16,
+  },
+  commentAuthor: {
+    fontSize: 12,
+    color: '#888',
   },
   input: {
-    borderColor: 'gray',
-    borderWidth: 1,
     padding: 10,
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
   },
 });
 

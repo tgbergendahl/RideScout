@@ -7,6 +7,7 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
+import thispostwontload from '../assets/thispostwontload.png'; // new default image
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -17,7 +18,6 @@ const Profile = () => {
 
   useEffect(() => {
     if (currentUser) {
-      console.log("Current user found:", currentUser.uid);
       fetchData();
     } else {
       console.error("No current user found");
@@ -26,20 +26,14 @@ const Profile = () => {
 
   const fetchData = async () => {
     try {
-      console.log('Fetching data...');
       const data = await getPosts();
-      if (data) {
-        setPosts(data.filter(post => post.userId === currentUser.uid));
-      } else {
-        console.error('No posts data available');
-      }
+      setPosts(data.filter(post => post.userId === currentUser.uid));
 
       const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setUserData(userData);
-        console.log('User Data:', userData);
+        setUserData(userDoc.data());
+        console.log('User Data:', userDoc.data());
       } else {
         console.error("No user data found in Firestore");
         Alert.alert('Error', 'No user data found in Firestore');
@@ -120,7 +114,7 @@ const Profile = () => {
     <View style={styles.postContainer}>
       <View style={styles.userInfo}>
         <Image
-          source={userData?.profileImage ? { uri: userData.profileImage } : defaultProfile}
+          source={userData?.profileImage ? { uri: userData.profileImage } : thispostwontload}
           style={styles.profileImage}
         />
         <Text style={styles.username}>{userData?.username || 'User not found'}</Text>
@@ -132,11 +126,11 @@ const Profile = () => {
             key={index}
             source={{ uri: url }}
             style={styles.image}
-            onError={() => (e.target.src = 'Image not available')}
+            onError={(e) => { e.target.src = 'Image not available'; }}
           />
         ))
       ) : (
-        <Text>Image not available</Text>
+        <Image source={thispostwontload} style={styles.image} />
       )}
       <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
       <View style={styles.actions}>
@@ -144,7 +138,7 @@ const Profile = () => {
           <Icon name="thumbs-up" size={20} color="#000" />
           <Text>{item.likesCount}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => handleComment(item.id)} style={styles.actionButton}>
           <Icon name="comment" size={20} color="#000" />
           <Text>{item.commentsCount}</Text>
         </TouchableOpacity>

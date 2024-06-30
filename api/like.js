@@ -11,7 +11,9 @@ export const likePost = async (postId, userId) => {
       if (!likes.includes(userId)) {
         likes.push(userId);
         await updateDoc(postRef, { likes, likesCount: likes.length });
-        console.log('Post liked by user:', userId); // Log liked post by user
+      } else {
+        const updatedLikes = likes.filter((like) => like !== userId);
+        await updateDoc(postRef, { likes: updatedLikes, likesCount: updatedLikes.length });
       }
     }
   } catch (error) {

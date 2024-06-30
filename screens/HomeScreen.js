@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, RefreshControl, TouchableOpacity, Alert, Button } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { getPosts, deletePost, likePost } from '../api/posts';
+import { getPosts, deletePost } from '../api/posts';
+import { likePost } from '../api/like';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
-import fallbackImage from '../assets/thispostwontload.png'; // Importing the new fallback image
 
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
@@ -23,7 +23,6 @@ const HomeScreen = () => {
         id: doc.id,
         ...doc.data()
       }));
-      console.log("Fetched posts:", fetchedPosts);
       setPosts(fetchedPosts);
       fetchUserData(fetchedPosts);
     });
@@ -32,9 +31,7 @@ const HomeScreen = () => {
   }, []);
 
   const fetchUserData = async (posts) => {
-    const validPosts = posts.filter(post => post.userId); // Filter out posts with empty userId
-    const userIds = [...new Set(validPosts.map(post => post.userId))];
-    console.log("User IDs to fetch:", userIds);
+    const userIds = [...new Set(posts.map(post => post.userId))];
     const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout/Data/Users', userId)));
     const userDocs = await Promise.all(userPromises);
     const usersData = {};
@@ -43,7 +40,6 @@ const HomeScreen = () => {
         usersData[userDoc.id] = userDoc.data();
       }
     });
-    console.log("Fetched user data:", usersData);
     setUsers(usersData);
   };
 
@@ -57,9 +53,7 @@ const HomeScreen = () => {
   const handleDeletePost = async (postId) => {
     try {
       await deletePost(postId);
-      console.log(`Post ${postId} deleted successfully`);
     } catch (error) {
-      console.error("Error deleting post:", error);
       Alert.alert('Error', 'There was an issue deleting the post.');
     }
   };
@@ -67,9 +61,7 @@ const HomeScreen = () => {
   const handleLikePost = async (postId) => {
     try {
       await likePost(postId, currentUser.uid);
-      console.log(`Post ${postId} liked by user ${currentUser.uid}`);
     } catch (error) {
-      console.error("Error liking post:", error);
       Alert.alert('Error', 'There was an issue liking the post.');
     }
   };
@@ -88,9 +80,9 @@ const HomeScreen = () => {
         item.imageUrls.map((url, index) => (
           <Image
             key={index}
-            source={url ? { uri: url } : fallbackImage}
+            source={{ uri: url }}
             style={styles.image}
-            defaultSource={fallbackImage} // Set the fallback image here
+            onError={() => (e.target.src = 'Image not available')}
           />
         ))
       ) : (
@@ -102,7 +94,7 @@ const HomeScreen = () => {
           <Icon name="thumbs-up" size={20} color="#000" />
           <Text>{item.likesCount}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.actionButton}>
           <Icon name="comment" size={20} color="#000" />
           <Text>{item.commentsCount}</Text>
         </TouchableOpacity>
