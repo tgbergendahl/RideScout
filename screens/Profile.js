@@ -7,7 +7,6 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
-import thispostwontload from '../assets/thispostwontload.png'; // new default image
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -114,7 +113,7 @@ const Profile = () => {
     <View style={styles.postContainer}>
       <View style={styles.userInfo}>
         <Image
-          source={userData?.profileImage ? { uri: userData.profileImage } : thispostwontload}
+          source={userData?.profileImage ? { uri: userData.profileImage } : defaultProfile}
           style={styles.profileImage}
         />
         <Text style={styles.username}>{userData?.username || 'User not found'}</Text>
@@ -126,11 +125,11 @@ const Profile = () => {
             key={index}
             source={{ uri: url }}
             style={styles.image}
-            onError={(e) => { e.target.src = 'Image not available'; }}
+            onError={() => (e.target.src = 'Image not available')}
           />
         ))
       ) : (
-        <Image source={thispostwontload} style={styles.image} />
+        <Text>Image not available</Text>
       )}
       <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
       <View style={styles.actions}>
@@ -138,7 +137,7 @@ const Profile = () => {
           <Icon name="thumbs-up" size={20} color="#000" />
           <Text>{item.likesCount}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleComment(item.id)} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('Comments', { postId: item.id })} style={styles.actionButton}>
           <Icon name="comment" size={20} color="#000" />
           <Text>{item.commentsCount}</Text>
         </TouchableOpacity>

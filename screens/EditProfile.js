@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Switch, Text } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImageAsync } from '../utils/uploadImage';
+import { uploadImageAsync } from '../utils/uploadImageAsync';
 
 const EditProfile = ({ navigation, route }) => {
   const { user } = route.params;
-  console.log('EditProfile route.params.user:', user);
+  const [bio, setBio] = useState(user.bio || '');
+  const [profileImage, setProfileImage] = useState(user.profileImage || '');
+  const [username, setUsername] = useState(user.username || '');
+  const [hideEmail, setHideEmail] = useState(user.hideEmail || false);
+  const [imageUploading, setImageUploading] = useState(false);
 
-  const [bio, setBio] = useState(user?.bio || '');
-  const [profileImage, setProfileImage] = useState(user?.profileImage || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [hideEmail, setHideEmail] = useState(user?.hideEmail || false);
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+      }
+    })();
+  }, []);
 
   const handleUpdateProfile = async () => {
-    console.log('Updating profile...');
     try {
       const userRef = doc(db, 'RideScout/Data/Users', auth.currentUser.uid);
       await updateDoc(userRef, {
@@ -24,7 +31,6 @@ const EditProfile = ({ navigation, route }) => {
         username,
         hideEmail,
       });
-      console.log('Profile updated successfully');
       Alert.alert('Success', 'Profile updated successfully.');
       navigation.navigate('Profile');
     } catch (error) {
@@ -34,18 +40,30 @@ const EditProfile = ({ navigation, route }) => {
   };
 
   const pickImage = async () => {
-    console.log('Picking image...');
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.cancelled) {
-      const uploadedUrl = await uploadImageAsync(result.uri);
-      console.log('Image uploaded:', uploadedUrl);
-      setProfileImage(uploadedUrl);
+      console.log('ImagePicker result:', result); // Debugging log
+
+      if (!result.canceled) {
+        console.log('Image selected:', result.assets[0].uri); // Ensure the URI is captured correctly
+        setImageUploading(true);
+        const uploadedUrl = await uploadImageAsync(result.assets[0].uri);
+        console.log('Image uploaded to:', uploadedUrl); // Debugging log
+        setProfileImage(uploadedUrl);
+      } else {
+        console.log('Image selection cancelled');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'There was an issue selecting the image. Please try again later.');
+    } finally {
+      setImageUploading(false);
     }
   };
 
@@ -63,8 +81,9 @@ const EditProfile = ({ navigation, route }) => {
         value={bio}
         onChangeText={setBio}
       />
-      <TouchableOpacity onPress={pickImage}>
+      <TouchableOpacity onPress={pickImage} disabled={imageUploading}>
         <Image source={profileImage ? { uri: profileImage } : require('../assets/defaultProfile.png')} style={styles.profileImage} />
+        {imageUploading && <Text>Uploading...</Text>}
       </TouchableOpacity>
       <View style={styles.switchContainer}>
         <Text>Hide Email</Text>
