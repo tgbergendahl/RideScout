@@ -15,15 +15,54 @@ const instance = axios.create({
 
 const RideScoutStore = () => {
     const [products, setProducts] = useState([]);
+    const [error, setError] = useState(null);
     const navigation = useNavigation();
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
+                console.log('Fetching products...');
                 const response = await instance.get('/store/products');
-                setProducts(response.data.result);
+                console.log('Products fetched:', response.data.result);
+
+                const productDetailsPromises = response.data.result.map(product => {
+                    console.log(`Fetching details for product ID: ${product.id}`);
+                    return instance.get(`/store/products/${product.id}`).then(response => response.data.result);
+                });
+
+                const productsWithDetails = await Promise.all(productDetailsPromises);
+
+                const productsWithPrices = productsWithDetails.map(productDetail => {
+                    const { sync_product, sync_variants } = productDetail;
+                    console.log('Product detail:', sync_product);
+                    console.log('Sync Variants:', sync_variants);
+
+                    if (!sync_variants) {
+                        console.error('No variants found for product:', sync_product.name);
+                        return null;
+                    }
+
+                    const variants = sync_variants.map(variant => ({
+                        id: variant.id,
+                        size: variant.size,
+                        price: parseFloat(variant.retail_price)
+                    }));
+
+                    console.log('Variants:', variants);
+
+                    return {
+                        id: sync_product.id,
+                        name: sync_product.name,
+                        thumbnail_url: sync_product.thumbnail_url,
+                        variants: variants,
+                        retail_price: Math.min(...variants.map(variant => variant.price)), // Display the minimum price
+                    };
+                }).filter(product => product !== null);
+
+                setProducts(productsWithPrices);
             } catch (error) {
                 console.error('Error fetching products:', error);
+                setError('Error fetching products');
             }
         };
 
@@ -31,23 +70,20 @@ const RideScoutStore = () => {
     }, []);
 
     const handlePurchase = (product) => {
-        // Redirect to the product purchase page or handle in-app purchase logic here
-        // For example, navigating to a product detail page
         navigation.navigate('ProductDetail', { product });
     };
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Image source={logo} style={styles.logo} />
-            </View>
+            <Image source={logo} style={styles.logo} />
+            {error && <Text style={styles.errorText}>{error}</Text>}
             <FlatList
                 data={products}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.productItem}>
                         <Text style={styles.productName}>{item.name}</Text>
-                        <Text style={styles.productPrice}>${item.retail_price}</Text>
+                        <Text style={styles.productPrice}>Starting at ${item.retail_price.toFixed(2)}</Text>
                         {item.thumbnail_url && <Image source={{ uri: item.thumbnail_url }} style={styles.image} />}
                         <TouchableOpacity style={styles.buyButton} onPress={() => handlePurchase(item)}>
                             <Text style={styles.buyButtonText}>Buy Now</Text>
@@ -62,29 +98,27 @@ const RideScoutStore = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
+        padding: 10,
+        backgroundColor: 'white',
+        alignItems: 'center',
     },
     header: {
-        width: '100%',
-        height: 150,
-        justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        paddingTop: 10,
         marginBottom: 20,
     },
     logo: {
-        width: 300,
+        width: 150,
         height: 150,
         resizeMode: 'contain',
-        alignSelf: 'center',
     },
     productItem: {
-        padding: 20,
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
         marginVertical: 10,
         backgroundColor: 'white',
         borderRadius: 5,
+        width: '100%',
     },
     productName: {
         fontSize: 18,
@@ -110,6 +144,11 @@ const styles = StyleSheet.create({
     buyButtonText: {
         color: '#fff',
         fontSize: 16,
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 16,
+        marginTop: 20,
     },
 });
 

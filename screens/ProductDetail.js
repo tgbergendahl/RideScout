@@ -5,7 +5,6 @@ const ProductDetail = ({ route }) => {
     const { product } = route.params;
 
     const handlePurchase = () => {
-        // Handle the purchase logic, possibly by redirecting to Printful's checkout
         console.log('Purchasing:', product.name);
     };
 
