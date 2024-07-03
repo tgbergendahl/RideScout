@@ -1,3 +1,4 @@
+// App.js
 import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -98,7 +99,7 @@ export default function App() {
               <Stack.Screen name="RideScoutStore" component={RideScoutStore} />
               <Stack.Screen name="ProductDetail" component={ProductDetail} />
               <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
-              <Stack.Screen name="PaymentScreen" component={PaymentScreen} /> {/* Add PaymentScreen */}
+              <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </StripeProvider>
