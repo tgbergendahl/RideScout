@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Button, Alert } from 'react-native';
+import { fetchProductDetails, createOrder, fetchStoreId, fetchProductVariants } from '../api/printful';
+import { useStripe } from '@stripe/stripe-react-native';
 
 const ProductDetail = ({ route }) => {
     const { product } = route.params;
@@ -11,35 +13,104 @@ const ProductDetail = ({ route }) => {
     const [selectedSize, setSelectedSize] = useState(initialSize);
     const [variantId, setVariantId] = useState(initialVariant.id);
     const [price, setPrice] = useState(initialPrice);
+    const [storeId, setStoreId] = useState(null);
+    const [variants, setVariants] = useState(product.variants || []);
+    const [message, setMessage] = useState('');
+
+    const stripe = useStripe();
+
+    useEffect(() => {
+        const getStoreIdFromAPI = async () => {
+            try {
+                const id = await fetchStoreId();
+                setStoreId(id);
+            } catch (error) {
+                console.error('Error fetching store ID:', error);
+            }
+        };
+
+        getStoreIdFromAPI();
+    }, []);
+
+    useEffect(() => {
+        const getVariantsFromAPI = async () => {
+            try {
+                const fetchedVariants = await fetchProductVariants(product.id);
+                setVariants(fetchedVariants);
+            } catch (error) {
+                console.error('Error fetching product variants:', error);
+            }
+        };
+
+        getVariantsFromAPI();
+    }, [product.id]);
 
     useEffect(() => {
         updateVariantIdAndPrice();
-    }, [selectedSize]);
+    }, [selectedSize, variants]);
 
     const updateVariantIdAndPrice = () => {
-        if (product.variants) {
-            const selectedVariant = product.variants.find(variant => variant.size === selectedSize);
+        if (variants.length > 0) {
+            const selectedVariant = variants.find(variant => variant.size === selectedSize);
             if (selectedVariant) {
                 setVariantId(selectedVariant.id);
-                setPrice(selectedVariant.price);
+                setPrice(parseFloat(selectedVariant.price));
                 console.log('Selected Variant ID:', selectedVariant.id);
                 console.log('Selected Variant Price:', selectedVariant.price);
             } else {
                 setVariantId(initialVariant.id);
-                setPrice(product.retail_price);
+                setPrice(initialPrice);
                 console.log('Default Variant ID:', initialVariant.id);
-                console.log('Default Price:', product.retail_price);
+                console.log('Default Price:', initialPrice);
             }
         } else {
             console.error(`No variants found for product: ${product.name}`);
         }
     };
 
-    const handlePurchase = async () => {
+    const fetchPaymentIntentClientSecret = async () => {
         try {
-            console.log('Variant ID to be used for order:', variantId);
-            if (!variantId) {
-                console.error('No variant ID found for the selected size.');
+            const response = await fetch('http://localhost:3000/create-payment-intent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ amount: price * 100 }), // amount in cents
+            });
+            const { clientSecret } = await response.json();
+            return clientSecret;
+        } catch (error) {
+            console.error('Error fetching client secret:', error);
+            setMessage('Error initiating payment. Please try again.');
+        }
+    };
+
+    const handlePayment = async () => {
+        const clientSecret = await fetchPaymentIntentClientSecret();
+        if (!clientSecret) return;
+
+        const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
+            type: 'Card',
+            billingDetails: {
+                name: 'Customer Name',
+                email: 'customer@example.com',
+            },
+        });
+
+        if (error) {
+            console.error('Payment confirmation error', error);
+            Alert.alert('Error', error.message);
+        } else if (paymentIntent) {
+            console.log('Payment successful', paymentIntent);
+            Alert.alert('Success', 'Payment successful');
+            handlePurchase(paymentIntent);
+        }
+    };
+
+    const handlePurchase = async (paymentDetails) => {
+        try {
+            if (!variantId || !storeId) {
+                console.error('Missing variant ID or store ID.');
                 return;
             }
 
@@ -58,27 +129,15 @@ const ProductDetail = ({ route }) => {
                         quantity: 1
                     }
                 ],
-                store_id: 13835822
+                store_id: storeId,
+                payment_details: paymentDetails
             };
 
             console.log('Order Data:', JSON.stringify(orderData, null, 2));
 
-            const response = await fetch('https://api.printful.com/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer WjRHtF1EWpfdAqEnt0xGbYXUGONzYwG2jujHD6ZZ`
-                },
-                body: JSON.stringify(orderData)
-            });
+            const response = await createOrder(orderData);
 
-            const result = await response.json();
-
-            if (response.ok) {
-                console.log('Order submitted successfully:', result);
-            } else {
-                console.error('Failed to submit order:', result);
-            }
+            console.log('Order submitted successfully:', response);
         } catch (error) {
             console.error('Error submitting order:', error);
         }
@@ -92,7 +151,7 @@ const ProductDetail = ({ route }) => {
             <Text style={styles.productDescription}>{product.description}</Text>
             <Text style={styles.label}>Select Size:</Text>
             <View style={styles.sizeContainer}>
-                {product.variants && product.variants.map((variant, index) => (
+                {variants && variants.map((variant, index) => (
                     <TouchableOpacity
                         key={index}
                         style={[
@@ -108,9 +167,8 @@ const ProductDetail = ({ route }) => {
                     </TouchableOpacity>
                 ))}
             </View>
-            <TouchableOpacity style={styles.buyNowButton} onPress={handlePurchase}>
-                <Text style={styles.buyNowButtonText}>Buy Now</Text>
-            </TouchableOpacity>
+            <Button title="Pay with Stripe" onPress={handlePayment} />
+            {message ? <Text>{message}</Text> : null}
         </View>
     );
 };
@@ -163,18 +221,6 @@ const styles = StyleSheet.create({
     },
     selectedSizeText: {
         color: '#fff',
-    },
-    buyNowButton: {
-        backgroundColor: '#000',
-        padding: 15,
-        alignItems: 'center',
-        marginVertical: 20,
-        borderRadius: 5,
-    },
-    buyNowButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
     },
 });
 

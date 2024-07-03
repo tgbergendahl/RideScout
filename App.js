@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ErrorBoundary from './components/ErrorBoundary'; // Custom error boundary component
+import { StripeProvider } from '@stripe/stripe-react-native'; // Stripe integration
 
 import HomeScreen from './screens/HomeScreen';
 import Profile from './screens/Profile';
@@ -30,6 +31,7 @@ import NotificationsScreen from './screens/NotificationsScreen';
 import RideScoutStore from './screens/RideScoutStore'; // Import the new screen
 import ProductDetail from './screens/ProductDetail';
 import RideScoutDisclaimer from './screens/RideScoutDisclaimer'; // Import the disclaimer screen
+import PaymentScreen from './screens/PaymentScreen'; // Import the PaymentScreen
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -73,30 +75,33 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="LoginPage">
-            <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
-            <Stack.Screen name="SignupPage" component={SignupPage} options={{ headerShown: false }} />
-            <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-            <Stack.Screen name="ChallengesPage" component={ChallengesPage} />
-            <Stack.Screen name="CreatePost" component={CreatePost} />
-            <Stack.Screen name="UpgradeAccount" component={UpgradeAccount} />
-            <Stack.Screen name="ContactSeller" component={ContactSeller} />
-            <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpot} />
-            <Stack.Screen name="CreateHog" component={CreateHog} />
-            <Stack.Screen name="EditProfile" component={EditProfile} />
-            <Stack.Screen name="CommentScreen" component={CommentScreen} />
-            <Stack.Screen name="Followers" component={Followers} />
-            <Stack.Screen name="Following" component={Following} />
-            <Stack.Screen name="RiderDirectory" component={RiderDirectory} />
-            <Stack.Screen name="RiderProfile" component={RiderProfile} />
-            <Stack.Screen name="Inbox" component={Inbox} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="RideScoutStore" component={RideScoutStore} />
-            <Stack.Screen name="ProductDetail" component={ProductDetail} />
-            <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <StripeProvider publishableKey="pk_live_51PYJxqRwF48RINrDW5T3YPID0WpDbTObuxzqoBUjiGa3KaIVF3LXtEvrYo1wvAi6DmtymkcJlEBvFklRqcfCZdyw00PaUl6xxP">
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="LoginPage">
+              <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
+              <Stack.Screen name="SignupPage" component={SignupPage} options={{ headerShown: false }} />
+              <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+              <Stack.Screen name="ChallengesPage" component={ChallengesPage} />
+              <Stack.Screen name="CreatePost" component={CreatePost} />
+              <Stack.Screen name="UpgradeAccount" component={UpgradeAccount} />
+              <Stack.Screen name="ContactSeller" component={ContactSeller} />
+              <Stack.Screen name="CreateScenicSpot" component={CreateScenicSpot} />
+              <Stack.Screen name="CreateHog" component={CreateHog} />
+              <Stack.Screen name="EditProfile" component={EditProfile} />
+              <Stack.Screen name="CommentScreen" component={CommentScreen} />
+              <Stack.Screen name="Followers" component={Followers} />
+              <Stack.Screen name="Following" component={Following} />
+              <Stack.Screen name="RiderDirectory" component={RiderDirectory} />
+              <Stack.Screen name="RiderProfile" component={RiderProfile} />
+              <Stack.Screen name="Inbox" component={Inbox} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="RideScoutStore" component={RideScoutStore} />
+              <Stack.Screen name="ProductDetail" component={ProductDetail} />
+              <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
+              <Stack.Screen name="PaymentScreen" component={PaymentScreen} /> {/* Add PaymentScreen */}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </StripeProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

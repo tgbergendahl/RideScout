@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Alert, Image, ScrollView, TouchableOpacity, StyleSheet, Button } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { useStripe } from '@stripe/stripe-react-native';
 import logo from '../assets/RideScout.jpg';
 import silverCheckmark from '../assets/silver_checkmark.png';
 import goldCheckmark from '../assets/gold_checkmark.png';
@@ -16,18 +16,13 @@ const UpgradeAccount = ({ navigation }) => {
 
   const [type, setType] = useState('certified');
   const [months, setMonths] = useState(1);
-  const [showWebView, setShowWebView] = useState(false);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState(
     Array.from({ length: 24 }, (_, i) => ({ label: `${i + 1} month${i > 0 ? 's' : ''}`, value: i + 1 }))
   );
   const [message, setMessage] = useState('');
 
-  const initialOptions = {
-    'client-id': 'ASxx84UqDdYC-bfdY_ajTGTi_TIfVHpF1oRmeUG9_uy1muW-qzXpcOog0PQrl54UocXqy23NtHoDaOPj', // Replace with your actual client ID
-    'currency': 'USD',
-    'disable-funding': 'credit,card',
-  };
+  const stripe = useStripe();
 
   const handleUpgrade = async () => {
     if (!user) {
@@ -50,61 +45,43 @@ const UpgradeAccount = ({ navigation }) => {
     }
   };
 
-  const handlePaymentSuccess = () => {
-    setShowWebView(false);
-    handleUpgrade();
-  };
-
-  const handleCreateOrder = async (data, actions) => {
+  const fetchPaymentIntentClientSecret = async () => {
     try {
       const cost = type === 'certified' ? 8 : 20;
-      const response = await fetch('/api/orders', {
+      const response = await fetch('http://localhost:3000/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          cart: [
-            {
-              id: type === 'certified' ? 'certified_seller' : 'certified_dealer',
-              quantity: months,
-              price: cost,
-            },
-          ],
-        }),
+        body: JSON.stringify({ amount: cost * months * 100 }), // amount in cents
       });
-
-      const orderData = await response.json();
-      if (orderData.id) {
-        return orderData.id;
-      } else {
-        throw new Error('Could not create PayPal order');
-      }
+      const { clientSecret } = await response.json();
+      return clientSecret;
     } catch (error) {
-      console.error('Error creating order:', error);
-      setMessage(`Could not initiate PayPal Checkout...${error}`);
+      console.error('Error fetching client secret:', error);
+      setMessage('Error initiating payment. Please try again.');
     }
   };
 
-  const handleApprove = async (data, actions) => {
-    try {
-      const response = await fetch(`/api/orders/${data.orderID}/capture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  const handlePayment = async () => {
+    const clientSecret = await fetchPaymentIntentClientSecret();
+    if (!clientSecret) return;
 
-      const orderData = await response.json();
-      if (orderData.status === 'COMPLETED') {
-        handlePaymentSuccess();
-        setMessage(`Transaction completed successfully!`);
-      } else {
-        throw new Error('Payment was not successful');
-      }
-    } catch (error) {
-      console.error('Error capturing order:', error);
-      setMessage(`Sorry, your transaction could not be processed...${error}`);
+    const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
+      type: 'Card',
+      billingDetails: {
+        name: user.displayName || 'Customer',
+        email: user.email,
+      },
+    });
+
+    if (error) {
+      console.error('Payment confirmation error', error);
+      Alert.alert('Error', error.message);
+    } else if (paymentIntent) {
+      console.log('Payment successful', paymentIntent);
+      Alert.alert('Success', 'Payment successful');
+      handleUpgrade();
     }
   };
 
@@ -144,25 +121,10 @@ const UpgradeAccount = ({ navigation }) => {
           dropDownStyle={{ backgroundColor: '#fafafa' }}
         />
       </View>
-      <TouchableOpacity style={styles.upgradeButton} onPress={() => setShowWebView(true)}>
+      <TouchableOpacity style={styles.upgradeButton} onPress={handlePayment}>
         <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
       </TouchableOpacity>
-      {showWebView && (
-        <View style={{ height: 400, marginTop: 20, width: '100%' }}>
-          <PayPalScriptProvider options={initialOptions}>
-            <PayPalButtons
-              style={{ layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' }}
-              createOrder={handleCreateOrder}
-              onApprove={handleApprove}
-              onError={(err) => {
-                console.error('PayPal error:', err);
-                setMessage('There was an issue processing the payment. Please try again.');
-              }}
-            />
-            {message && <Text>{message}</Text>}
-          </PayPalScriptProvider>
-        </View>
-      )}
+      {message ? <Text>{message}</Text> : null}
       <TouchableOpacity onPress={() => navigation.navigate('RideScoutDisclaimer')}>
         <Text style={styles.disclaimerLink}>View Disclaimer and Guidelines</Text>
       </TouchableOpacity>
