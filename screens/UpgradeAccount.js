@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Image, ScrollView, TouchableOpacity, StyleSheet, Button } from 'react-native';
+import { View, Text, Alert, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripe, CardField } from '@stripe/stripe-react-native'; // Import Stripe components
 import logo from '../assets/RideScout.jpg';
 import silverCheckmark from '../assets/silver_checkmark.png';
 import goldCheckmark from '../assets/gold_checkmark.png';
@@ -22,7 +22,7 @@ const UpgradeAccount = ({ navigation }) => {
   );
   const [message, setMessage] = useState('');
 
-  const stripe = useStripe();
+  const { confirmPayment } = useStripe(); // Stripe hook
 
   const handleUpgrade = async () => {
     if (!user) {
@@ -45,43 +45,34 @@ const UpgradeAccount = ({ navigation }) => {
     }
   };
 
-  const fetchPaymentIntentClientSecret = async () => {
-    try {
-      const cost = type === 'certified' ? 8 : 20;
-      const response = await fetch('http://localhost:3000/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount: cost * months * 100 }), // amount in cents
-      });
-      const { clientSecret } = await response.json();
-      return clientSecret;
-    } catch (error) {
-      console.error('Error fetching client secret:', error);
-      setMessage('Error initiating payment. Please try again.');
-    }
+  const handlePaymentSuccess = () => {
+    handleUpgrade();
   };
 
-  const handlePayment = async () => {
-    const clientSecret = await fetchPaymentIntentClientSecret();
-    if (!clientSecret) return;
+  const handleCreatePayment = async () => {
+    try {
+      const cost = type === 'certified' ? 8 : 20;
 
-    const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
-      type: 'Card',
-      billingDetails: {
-        name: user.displayName || 'Customer',
-        email: user.email,
-      },
-    });
+      const { paymentIntent, error } = await confirmPayment('client_secret_from_backend', {
+        type: 'Card',
+        billingDetails: {
+          name: user.displayName,
+          email: user.email,
+        },
+      });
 
-    if (error) {
-      console.error('Payment confirmation error', error);
-      Alert.alert('Error', error.message);
-    } else if (paymentIntent) {
-      console.log('Payment successful', paymentIntent);
-      Alert.alert('Success', 'Payment successful');
-      handleUpgrade();
+      if (error) {
+        setMessage(`Payment failed: ${error.message}`);
+        return;
+      }
+
+      if (paymentIntent) {
+        handlePaymentSuccess();
+        setMessage('Payment successful!');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      setMessage(`Error: ${error.message}`);
     }
   };
 
@@ -121,9 +112,26 @@ const UpgradeAccount = ({ navigation }) => {
           dropDownStyle={{ backgroundColor: '#fafafa' }}
         />
       </View>
-      <TouchableOpacity style={styles.upgradeButton} onPress={handlePayment}>
+      <TouchableOpacity style={styles.upgradeButton} onPress={handleCreatePayment}>
         <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
       </TouchableOpacity>
+      <View style={{ height: 200, marginTop: 20, width: '100%' }}>
+        <CardField
+          postalCodeEnabled={true}
+          placeholder={{
+            number: '4242 4242 4242 4242',
+          }}
+          cardStyle={{
+            backgroundColor: '#FFFFFF',
+            textColor: '#000000',
+          }}
+          style={{
+            width: '100%',
+            height: 50,
+            marginVertical: 30,
+          }}
+        />
+      </View>
       {message ? <Text>{message}</Text> : null}
       <TouchableOpacity onPress={() => navigation.navigate('RideScoutDisclaimer')}>
         <Text style={styles.disclaimerLink}>View Disclaimer and Guidelines</Text>

@@ -4,8 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import ErrorBoundary from './components/ErrorBoundary'; // Custom error boundary component
-import { StripeProvider } from '@stripe/stripe-react-native'; // Stripe integration
+import ErrorBoundary from './components/ErrorBoundary';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 import HomeScreen from './screens/HomeScreen';
 import Profile from './screens/Profile';
@@ -28,10 +28,10 @@ import RiderDirectory from './screens/RiderDirectory';
 import RiderProfile from './screens/RiderProfile';
 import Inbox from './screens/Inbox';
 import NotificationsScreen from './screens/NotificationsScreen';
-import RideScoutStore from './screens/RideScoutStore'; // Import the new screen
+import RideScoutStore from './screens/RideScoutStore';
 import ProductDetail from './screens/ProductDetail';
-import RideScoutDisclaimer from './screens/RideScoutDisclaimer'; // Import the disclaimer screen
-import PaymentScreen from './screens/PaymentScreen'; // Import the PaymentScreen
+import RideScoutDisclaimer from './screens/RideScoutDisclaimer';
+import PaymentScreen from './screens/PaymentScreen';
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
