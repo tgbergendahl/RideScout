@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, RefreshContr
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import defaultProfile from '../assets/defaultProfile.png';
+import { likePost } from '../api/like';
 
 const RiderProfile = ({ route, navigation }) => {
   const { userId } = route.params;
@@ -81,6 +83,14 @@ const RiderProfile = ({ route, navigation }) => {
     setIsFollowing(!isFollowing);
   };
 
+  const handleLikePost = async (postId) => {
+    try {
+      await likePost(postId, currentUser.uid);
+    } catch (error) {
+      Alert.alert('Error', 'There was an issue liking the post.');
+    }
+  };
+
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <Text style={styles.postContent}>{item.content}</Text>
@@ -97,6 +107,16 @@ const RiderProfile = ({ route, navigation }) => {
         <Text>Image not available</Text>
       )}
       <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => handleLikePost(item.id)} style={styles.actionButton}>
+          <Icon name="thumbs-up" size={20} color="#000" />
+          <Text>{item.likesCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.actionButton}>
+          <Icon name="comment" size={20} color="#000" />
+          <Text>{item.commentsCount}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -211,6 +231,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 5,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

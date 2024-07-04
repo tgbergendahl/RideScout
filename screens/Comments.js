@@ -49,7 +49,7 @@ const Comments = () => {
 
   const handleAddComment = async () => {
     try {
-      await addComment(postId, currentUser.uid, newComment);
+      await addComment(postId, newComment, currentUser.uid);
       setNewComment('');
       fetchComments(); // Refresh comments after adding a new one
     } catch (error) {
@@ -60,8 +60,8 @@ const Comments = () => {
 
   const renderComment = ({ item }) => (
     <View style={styles.commentContainer}>
-      <Text style={styles.commentText}>{item.text}</Text>
-      <Text style={styles.commentAuthor}>{item.username}</Text>
+      <Text style={styles.commentText}>{item.content}</Text>
+      <Text style={styles.commentAuthor}>{userData.username}</Text>
     </View>
   );
 
