@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, RefreshControl, TouchableOpacity, Alert, Button } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { getPosts, deletePost } from '../api/posts';
+import { deletePost } from '../api/posts';
 import { likePost } from '../api/like';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
@@ -13,6 +13,7 @@ const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const currentUser = auth.currentUser;
 
@@ -31,16 +32,23 @@ const HomeScreen = () => {
   }, []);
 
   const fetchUserData = async (posts) => {
-    const userIds = [...new Set(posts.map(post => post.userId))];
-    const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout/Data/Users', userId)));
+    console.log("Fetching user data...");
+    const userIds = [...new Set(posts.map(post => post.userId).filter(userId => userId))];
+    console.log("User IDs: ", userIds);
+
+    const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout', 'Data', 'Users', userId)));
     const userDocs = await Promise.all(userPromises);
+
     const usersData = {};
     userDocs.forEach(userDoc => {
       if (userDoc.exists()) {
         usersData[userDoc.id] = userDoc.data();
       }
     });
+
+    console.log("Fetched users data: ", usersData);
     setUsers(usersData);
+    setLoading(false);
   };
 
   const onRefresh = () => {
@@ -53,6 +61,7 @@ const HomeScreen = () => {
   const handleDeletePost = async (postId) => {
     try {
       await deletePost(postId);
+      Alert.alert('Success', 'Post deleted successfully.');
     } catch (error) {
       Alert.alert('Error', 'There was an issue deleting the post.');
     }
@@ -69,21 +78,29 @@ const HomeScreen = () => {
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.userInfo}>
-        <Image
-          source={users[item.userId]?.profileImage ? { uri: users[item.userId].profileImage } : defaultProfile}
-          style={styles.profileImage}
-        />
+        {loading ? (
+          <ActivityIndicator size="small" color="#000" />
+        ) : (
+          <Image
+            source={users[item.userId]?.profileImage ? { uri: users[item.userId].profileImage } : defaultProfile}
+            style={styles.profileImage}
+          />
+        )}
         <Text style={styles.username}>{users[item.userId]?.username || 'User not found'}</Text>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       {item.imageUrls && item.imageUrls.length > 0 ? (
         item.imageUrls.map((url, index) => (
-          <Image
-            key={index}
-            source={{ uri: url }}
-            style={styles.image}
-            onError={() => (e.target.src = 'Image not available')}
-          />
+          url ? (
+            <Image
+              key={index}
+              source={{ uri: url }}
+              style={styles.image}
+              onError={() => console.log('Image not available')}
+            />
+          ) : (
+            <Text key={index}>Image not available</Text>
+          )
         ))
       ) : (
         <Text>Image not available</Text>
@@ -137,7 +154,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingTop: 10,
-    marginBottom: -10,  // Adjusted for aesthetic reasons
+    marginBottom: -10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
