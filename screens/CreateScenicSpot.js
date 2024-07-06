@@ -58,7 +58,7 @@ const CreateScenicSpot = ({ navigation }) => {
         <Image source={logo} style={styles.logo} />
       </View>
       <Text style={styles.inquiryText}>
-        Submit this form to post your Scenic Spot
+        Submit this form to post your Scenic Spot for consideration!
       </Text>
       <TextInput
         value={description}

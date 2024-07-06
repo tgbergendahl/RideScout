@@ -34,8 +34,9 @@ const ScenicSpots = () => {
 
   useEffect(() => {
     const filtered = scenicSpots.filter(spot =>
-      (spot.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (spot.location?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+      (spot.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (spot.location?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (spot.address?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     );
     setFilteredSpots(filtered);
   }, [searchQuery, scenicSpots]);
@@ -62,7 +63,8 @@ const ScenicSpots = () => {
     <View style={styles.spotContainer}>
       <Text style={styles.spotName}>{item.name}</Text>
       <Text style={styles.spotDescription}>{item.description}</Text>
-      <Text style={styles.spotLocation}>{item.address}</Text>
+      <Text style={styles.spotLocation}>{item.location}</Text>
+      <Text style={styles.spotAddress}>{item.address}</Text>
       {item.imageUrls && item.imageUrls.map((url, index) => (
         <Image key={index} source={{ uri: url }} style={styles.image} />
       ))}
@@ -88,7 +90,7 @@ const ScenicSpots = () => {
       <Image source={logo} style={styles.logo} />
       <TextInput
         style={styles.searchBar}
-        placeholder="Search by name or location"
+        placeholder="Search by name, location, or address"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
@@ -162,6 +164,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   spotLocation: {
+    fontSize: 14,
+    color: '#666',
+  },
+  spotAddress: {
     fontSize: 14,
     color: '#666',
   },
