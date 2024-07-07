@@ -1,56 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, RefreshControl, Alert, ScrollView } from 'react-native';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
-import { useAuth } from '../contexts/AuthContext';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, RefreshControl, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../firebaseConfig';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import defaultProfile from '../assets/defaultProfile.png';
 import { likePost } from '../api/like';
+import { followUser, unfollowUser } from '../api/follow';
 
 const RiderProfile = ({ route, navigation }) => {
   const { userId } = route.params;
-  const { user: currentUser } = useAuth();
+  const currentUser = auth.currentUser;
   const [rider, setRider] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [posts, setPosts] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (currentUser) {
-      console.log('Current user ID:', currentUser.uid);
       fetchRiderData();
-    } else {
-      console.log('Current user is not available');
     }
   }, [userId, currentUser]);
 
   const fetchRiderData = async () => {
     try {
-      console.log('Fetching rider data...');
-      const riderDoc = await getDoc(doc(db, 'RideScout/Data/Users', userId));
+      const riderDoc = await getDoc(doc(db, 'RideScout', 'Data', 'Users', userId));
       if (riderDoc.exists()) {
         const riderData = riderDoc.data();
-        riderData.followersArray = riderData.followersArray || []; // Initialize followersArray field if missing
-        riderData.followingArray = riderData.followingArray || []; // Initialize followingArray field if missing
+        riderData.followersArray = riderData.followersArray || [];
+        riderData.followingArray = riderData.followingArray || [];
         setRider({ id: riderDoc.id, ...riderData });
         setIsFollowing(riderData.followersArray.includes(currentUser.uid));
-        console.log('Rider data fetched:', riderData);
-      } else {
-        console.log('Rider document does not exist');
+        fetchUserPosts();
       }
+    } catch (error) {
+      Alert.alert('Error', 'There was an issue fetching the rider data.');
+    }
+  };
 
-      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), where('userId', '==', userId));
+  const fetchUserPosts = async () => {
+    try {
+      const postsQuery = query(collection(db, 'RideScout', 'Data', 'Posts'), where('userId', '==', userId));
       const postsSnapshot = await getDocs(postsQuery);
       const fetchedPosts = postsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       }));
-
       setPosts(fetchedPosts);
-      console.log('Posts fetched:', fetchedPosts);
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching rider data:', error);
-      Alert.alert('Error', 'There was an issue fetching the rider data. Please try again later.');
+      Alert.alert('Error', 'There was an issue fetching the posts.');
     }
   };
 
@@ -60,27 +59,17 @@ const RiderProfile = ({ route, navigation }) => {
   };
 
   const handleFollow = async () => {
-    const riderRef = doc(db, 'RideScout/Data/Users', userId);
-    const userRef = doc(db, 'RideScout/Data/Users', currentUser.uid);
-
-    if (isFollowing) {
-      await updateDoc(riderRef, {
-        followersArray: arrayRemove(currentUser.uid),
-      });
-      await updateDoc(userRef, {
-        followingArray: arrayRemove(userId),
-      });
-    } else {
-      await updateDoc(riderRef, {
-        followersArray: arrayUnion(currentUser.uid),
-      });
-      await updateDoc(userRef, {
-        followingArray: arrayUnion(userId),
-      });
-      Alert.alert('Success', 'Account followed successfully');
+    try {
+      if (isFollowing) {
+        await unfollowUser(userId);
+      } else {
+        await followUser(userId);
+      }
+      setIsFollowing(!isFollowing);
+      fetchRiderData();
+    } catch (error) {
+      Alert.alert('Error', 'There was an issue updating the follow status.');
     }
-
-    setIsFollowing(!isFollowing);
   };
 
   const handleLikePost = async (postId) => {
@@ -100,13 +89,12 @@ const RiderProfile = ({ route, navigation }) => {
             key={index}
             source={{ uri: url }}
             style={styles.image}
-            onError={() => console.log('Image not available')}
           />
         ))
       ) : (
         <Text>Image not available</Text>
       )}
-      <Text style={styles.timestamp}>{new Date(item.createdAt?.seconds * 1000).toLocaleString()}</Text>
+      <Text style={styles.timestamp}>{new Date(item.createdAt.seconds * 1000).toLocaleString()}</Text>
       <View style={styles.actions}>
         <TouchableOpacity onPress={() => handleLikePost(item.id)} style={styles.actionButton}>
           <Icon name="thumbs-up" size={20} color="#000" />
@@ -121,7 +109,7 @@ const RiderProfile = ({ route, navigation }) => {
   );
 
   if (!rider) {
-    return <Text>Loading...</Text>;
+    return <ActivityIndicator size="large" color="#000" />;
   }
 
   return (

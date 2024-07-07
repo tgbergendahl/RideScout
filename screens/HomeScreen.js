@@ -18,23 +18,38 @@ const HomeScreen = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const postsQuery = query(collection(db, 'RideScout/Data/Posts'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
-      const fetchedPosts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPosts(fetchedPosts);
-      fetchUserData(fetchedPosts);
-    });
+    const fetchFollowingPosts = async () => {
+      // Fetch the current user's following list
+      const userDoc = await getDoc(doc(db, 'RideScout', 'Data', 'Users', currentUser.uid));
+      const following = userDoc.data().followingArray || [];
 
-    return () => unsubscribe();
+      if (following.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Query posts from users the current user follows
+      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
+        const fetchedPosts = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // Filter posts to include only those from followed users
+        const filteredPosts = fetchedPosts.filter(post => following.includes(post.userId));
+        setPosts(filteredPosts);
+        fetchUserData(filteredPosts);
+      });
+
+      return () => unsubscribe();
+    };
+
+    fetchFollowingPosts();
   }, []);
 
   const fetchUserData = async (posts) => {
-    console.log("Fetching user data...");
     const userIds = [...new Set(posts.map(post => post.userId).filter(userId => userId))];
-    console.log("User IDs: ", userIds);
 
     const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout', 'Data', 'Users', userId)));
     const userDocs = await Promise.all(userPromises);
@@ -46,7 +61,6 @@ const HomeScreen = () => {
       }
     });
 
-    console.log("Fetched users data: ", usersData);
     setUsers(usersData);
     setLoading(false);
   };
