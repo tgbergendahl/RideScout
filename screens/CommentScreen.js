@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getComments, addComment, deleteComment, likeComment } from '../api/comments';
 import { db, auth } from '../firebaseConfig';
@@ -89,7 +89,11 @@ const CommentScreen = ({ route }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0} // Increased the offset
+    >
       <FlatList
         data={comments}
         keyExtractor={(item) => item.id}
@@ -105,7 +109,7 @@ const CommentScreen = ({ route }) => {
         />
         <Button title="Send" onPress={handleAddComment} />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
