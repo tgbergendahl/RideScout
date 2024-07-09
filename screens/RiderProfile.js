@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, RefreshControl, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import defaultProfile from '../assets/defaultProfile.png';
@@ -18,24 +18,28 @@ const RiderProfile = ({ route, navigation }) => {
 
   useEffect(() => {
     if (currentUser) {
-      fetchRiderData();
+      const unsubscribe = fetchRiderData();
+      return () => unsubscribe();
     }
   }, [userId, currentUser]);
 
-  const fetchRiderData = async () => {
-    try {
-      const riderDoc = await getDoc(doc(db, 'RideScout/Data/Users', userId));
+  const fetchRiderData = () => {
+    const riderRef = doc(db, 'RideScout/Data/Users', userId);
+    const unsubscribe = onSnapshot(riderRef, async (riderDoc) => {
       if (riderDoc.exists()) {
         const riderData = riderDoc.data();
         riderData.followersArray = riderData.followersArray || [];
         riderData.followingArray = riderData.followingArray || [];
         setRider({ id: riderDoc.id, ...riderData });
         setIsFollowing(riderData.followersArray.includes(currentUser.uid));
-        fetchUserPosts();
+        await fetchUserPosts();
+      } else {
+        Alert.alert('Error', 'No rider data found.');
       }
-    } catch (error) {
-      Alert.alert('Error', 'There was an issue fetching the rider data.');
-    }
+    }, (error) => {
+      Alert.alert('Error', `There was an issue fetching the rider data: ${error.message}`);
+    });
+    return unsubscribe;
   };
 
   const fetchUserPosts = async () => {
@@ -49,13 +53,15 @@ const RiderProfile = ({ route, navigation }) => {
       setPosts(fetchedPosts);
       setLoading(false);
     } catch (error) {
-      Alert.alert('Error', 'There was an issue fetching the posts.');
+      Alert.alert('Error', `There was an issue fetching the posts: ${error.message}`);
+      setLoading(false);
     }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchRiderData().then(() => setRefreshing(false));
+    fetchRiderData(); // Removed .then() since fetchRiderData doesn't return a promise
+    setRefreshing(false);
   };
 
   const handleFollow = async () => {
@@ -66,10 +72,9 @@ const RiderProfile = ({ route, navigation }) => {
         await followUser(userId);
       }
       setIsFollowing(!isFollowing);
-      // Re-fetch the rider data to update the follower count and status
-      fetchRiderData();
+      fetchRiderData(); // Ensure profile data is updated
     } catch (error) {
-      Alert.alert('Error', 'There was an issue updating the follow status.');
+      Alert.alert('Error', `There was an issue updating the follow status: ${error.message}`);
     }
   };
 
@@ -77,7 +82,7 @@ const RiderProfile = ({ route, navigation }) => {
     try {
       await likePost(postId, currentUser.uid);
     } catch (error) {
-      Alert.alert('Error', 'There was an issue liking the post.');
+      Alert.alert('Error', `There was an issue liking the post: ${error.message}`);
     }
   };
 

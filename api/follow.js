@@ -1,4 +1,3 @@
-// api/follow.js
 import { db, auth } from '../firebaseConfig';
 import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { sendNotification } from './notifications';

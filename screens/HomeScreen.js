@@ -19,11 +19,14 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const fetchFollowingPosts = async () => {
+      if (!currentUser) return;
+
       // Fetch the current user's following list
-      const userDoc = await getDoc(doc(db, 'RideScout', 'Data', 'Users', currentUser.uid));
+      const userDoc = await getDoc(doc(db, 'RideScout/Data/Users', currentUser.uid));
       const following = userDoc.data().followingArray || [];
 
       if (following.length === 0) {
+        setPosts([]);
         setLoading(false);
         return;
       }
@@ -46,12 +49,12 @@ const HomeScreen = () => {
     };
 
     fetchFollowingPosts();
-  }, []);
+  }, [currentUser]);
 
   const fetchUserData = async (posts) => {
     const userIds = [...new Set(posts.map(post => post.userId).filter(userId => userId))];
 
-    const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout', 'Data', 'Users', userId)));
+    const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout/Data/Users', userId)));
     const userDocs = await Promise.all(userPromises);
 
     const usersData = {};
