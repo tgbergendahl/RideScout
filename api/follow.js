@@ -1,6 +1,7 @@
 // api/follow.js
 import { db, auth } from '../firebaseConfig';
 import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
+import { sendNotification } from './notifications';
 
 export const followUser = async (targetUserId) => {
   const currentUser = auth.currentUser;
@@ -15,14 +16,17 @@ export const followUser = async (targetUserId) => {
     // Update current user's following array
     await updateDoc(currentUserRef, {
       followingArray: arrayUnion(targetUserId),
-      following: increment(1), // Increment the following count
+      following: increment(1)
     });
 
     // Update target user's followers array
     await updateDoc(targetUserRef, {
       followersArray: arrayUnion(currentUser.uid),
-      followers: increment(1), // Increment the followers count
+      followers: increment(1)
     });
+
+    // Send notification
+    await sendNotification(targetUserId, currentUser.uid, 'follow');
 
     console.log(`Successfully followed user: ${targetUserId}`);
   } catch (error) {
@@ -44,13 +48,13 @@ export const unfollowUser = async (targetUserId) => {
     // Update current user's following array
     await updateDoc(currentUserRef, {
       followingArray: arrayRemove(targetUserId),
-      following: increment(-1), // Decrement the following count
+      following: increment(-1)
     });
 
     // Update target user's followers array
     await updateDoc(targetUserRef, {
       followersArray: arrayRemove(currentUser.uid),
-      followers: increment(-1), // Decrement the followers count
+      followers: increment(-1)
     });
 
     console.log(`Successfully unfollowed user: ${targetUserId}`);

@@ -1,5 +1,6 @@
 import { db } from '../firebaseConfig';
-import { collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
+import { sendNotification } from './notifications';
 
 // Function to get comments for a post
 export const getComments = async (postId) => {
@@ -15,7 +16,7 @@ export const addComment = async (postId, content, userId) => {
     postId,
     content,
     userId,
-    createdAt: new Date(),
+    createdAt: serverTimestamp(),
     likesCount: 0,
   });
 
@@ -25,6 +26,15 @@ export const addComment = async (postId, content, userId) => {
     commentsCount: increment(1),
     comments: arrayUnion(commentRef.id),
   });
+
+  // Send notification to the post owner
+  const postSnapshot = await getDoc(postRef);
+  if (postSnapshot.exists()) {
+    const postData = postSnapshot.data();
+    if (postData.userId !== userId) {
+      await sendNotification(postData.userId, userId, 'comment', postId);
+    }
+  }
 };
 
 // Function to like a comment
@@ -34,4 +44,13 @@ export const likeComment = async (commentId, userId) => {
     likesCount: increment(1),
     likes: arrayUnion(userId),
   });
+
+  // Send notification to the comment owner
+  const commentSnapshot = await getDoc(commentRef);
+  if (commentSnapshot.exists()) {
+    const commentData = commentSnapshot.data();
+    if (commentData.userId !== userId) {
+      await sendNotification(commentData.userId, userId, 'like', commentData.postId, commentId);
+    }
+  }
 };

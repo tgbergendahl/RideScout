@@ -24,7 +24,7 @@ const RiderProfile = ({ route, navigation }) => {
 
   const fetchRiderData = async () => {
     try {
-      const riderDoc = await getDoc(doc(db, 'RideScout', 'Data', 'Users', userId));
+      const riderDoc = await getDoc(doc(db, 'RideScout/Data/Users', userId));
       if (riderDoc.exists()) {
         const riderData = riderDoc.data();
         riderData.followersArray = riderData.followersArray || [];
@@ -40,7 +40,7 @@ const RiderProfile = ({ route, navigation }) => {
 
   const fetchUserPosts = async () => {
     try {
-      const postsQuery = query(collection(db, 'RideScout', 'Data', 'Posts'), where('userId', '==', userId));
+      const postsQuery = query(collection(db, 'RideScout/Data/Posts'), where('userId', '==', userId));
       const postsSnapshot = await getDocs(postsQuery);
       const fetchedPosts = postsSnapshot.docs.map(doc => ({
         id: doc.id,
@@ -66,6 +66,7 @@ const RiderProfile = ({ route, navigation }) => {
         await followUser(userId);
       }
       setIsFollowing(!isFollowing);
+      // Re-fetch the rider data to update the follower count and status
       fetchRiderData();
     } catch (error) {
       Alert.alert('Error', 'There was an issue updating the follow status.');
@@ -108,8 +109,12 @@ const RiderProfile = ({ route, navigation }) => {
     </View>
   );
 
-  if (!rider) {
+  if (loading) {
     return <ActivityIndicator size="large" color="#000" />;
+  }
+
+  if (!rider) {
+    return <View><Text>No rider data found.</Text></View>;
   }
 
   return (

@@ -1,5 +1,6 @@
 import { db } from '../firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
+import { sendNotification } from './notifications';
 
 export const likePost = async (postId, userId) => {
   try {
@@ -9,11 +10,20 @@ export const likePost = async (postId, userId) => {
       const postData = postSnapshot.data();
       const likes = postData.likes || [];
       if (!likes.includes(userId)) {
-        likes.push(userId);
-        await updateDoc(postRef, { likes, likesCount: likes.length });
+        await updateDoc(postRef, {
+          likes: arrayUnion(userId),
+          likesCount: increment(1)
+        });
+
+        // Send notification to the post owner
+        if (postData.userId !== userId) {
+          await sendNotification(postData.userId, userId, 'like', postId);
+        }
       } else {
-        const updatedLikes = likes.filter((like) => like !== userId);
-        await updateDoc(postRef, { likes: updatedLikes, likesCount: updatedLikes.length });
+        await updateDoc(postRef, {
+          likes: arrayRemove(userId),
+          likesCount: increment(-1)
+        });
       }
     }
   } catch (error) {
