@@ -8,40 +8,74 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, addDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, getDocs, doc, getDoc } from 'firebase/firestore';
+import defaultProfile from '../assets/defaultProfile.png';
 
 const Inbox = ({ route }) => {
-  const { recipientId, recipientName } = route.params;
-  const { currentUser } = useAuth();
+  const { recipientId } = route.params;
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
+  const [recipientData, setRecipientData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !authLoading) {
+      console.log("Current user found:", currentUser.uid);
+      fetchRecipientData();
+      fetchMessages();
+    } else {
+      console.log("No current user found or auth is loading.");
+    }
+  }, [currentUser, recipientId, authLoading]);
+
+  const fetchRecipientData = async () => {
+    try {
+      console.log("Fetching recipient data for:", recipientId);
+      const recipientDoc = await getDoc(doc(db, 'RideScout/Data/Users', recipientId));
+      if (recipientDoc.exists()) {
+        console.log("Recipient data:", recipientDoc.data());
+        setRecipientData(recipientDoc.data());
+      } else {
+        console.log("Recipient data does not exist.");
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching recipient data:', error);
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      console.log("Fetching messages...");
       const q = query(
         collection(db, 'RideScout/Data/Messages'),
-        where('participants', 'array-contains', currentUser.uid),
-        orderBy('timestamp', 'asc')
+        where('participants', 'array-contains', currentUser.uid)
       );
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const msgs = [];
-        querySnapshot.forEach((doc) => {
-          if (doc.data().participants.includes(recipientId)) {
-            msgs.push({ ...doc.data(), id: doc.id });
-          }
-        });
-        setMessages(msgs);
-      });
+      const querySnapshot = await getDocs(q);
+      const msgs = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      
+      // Manually sort messages by timestamp
+      msgs.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
 
-      return () => unsubscribe();
+      setMessages(msgs);
+      console.log("Fetched messages:", msgs);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
     }
-  }, [currentUser, recipientId]);
+  };
 
   const handleSend = async () => {
     if (message.trim() !== '' && currentUser) {
+      console.log("Sending message:", message);
       await addDoc(collection(db, 'RideScout/Data/Messages'), {
         text: message,
         sender: currentUser.uid,
@@ -49,40 +83,61 @@ const Inbox = ({ route }) => {
         timestamp: new Date(),
       });
       setMessage('');
+      fetchMessages(); // Fetch messages again after sending
     }
   };
+
+  if (authLoading || loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#000" />
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
+      keyboardVerticalOffset={90} // Adjust as needed
     >
-      <View style={styles.container}>
-        <Text style={styles.header}>Messaging with {recipientName}</Text>
-        <FlatList
-          data={messages}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageContainer,
-                item.sender === currentUser.uid ? styles.myMessage : styles.theirMessage,
-              ]}
-            >
-              <Text style={styles.messageText}>{item.text}</Text>
-            </View>
-          )}
-          keyExtractor={(item) => item.id}
-        />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Type your message..."
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <Image
+              source={recipientData?.profileImage ? { uri: recipientData.profileImage } : defaultProfile}
+              style={styles.profilePicture}
+            />
+            <Text style={styles.header}>Messaging with {recipientData?.username || 'Unknown'}</Text>
+          </View>
+          <FlatList
+            data={messages}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.messageContainer,
+                  item.sender === currentUser.uid ? styles.myMessage : styles.theirMessage,
+                ]}
+              >
+                <Text style={item.sender === currentUser.uid ? styles.myMessageText : styles.theirMessageText}>
+                  {item.text}
+                </Text>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
           />
-          <Button title="Send" onPress={handleSend} />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Type your message..."
+            />
+            <Button title="Send" onPress={handleSend} />
+          </View>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
@@ -92,27 +147,48 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   header: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
+    marginLeft: 10,
+  },
+  profilePicture: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   messageContainer: {
     padding: 10,
     borderRadius: 5,
     marginVertical: 5,
+    maxWidth: '70%',
   },
   myMessage: {
-    backgroundColor: '#dcf8c6',
+    backgroundColor: '#000',
     alignSelf: 'flex-end',
   },
   theirMessage: {
-    backgroundColor: '#f1f0f0',
+    backgroundColor: '#fff',
     alignSelf: 'flex-start',
   },
   messageText: {
     fontSize: 16,
+  },
+  myMessageText: {
+    color: '#fff', // White text for the user's message
+  },
+  theirMessageText: {
+    color: '#000', // Black text for the other person's message
   },
   inputContainer: {
     flexDirection: 'row',
@@ -120,10 +196,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#ccc',
     padding: 5,
+    marginBottom: 10, // Add margin to avoid keyboard overlap
   },
   input: {
     flex: 1,
     fontSize: 16,
+    paddingVertical: 10, // Increase padding for better clickability
   },
 });
 
