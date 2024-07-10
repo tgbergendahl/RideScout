@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableOpacity, Text, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, Button, Image, StyleSheet, Alert, ScrollView, TouchableOpacity, Text, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import logo from '../assets/RideScout.jpg';
 
@@ -21,7 +22,10 @@ const CreateHog = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [gearAccessoryName, setGearAccessoryName] = useState('');
+  const [zipCode, setZipCode] = useState('');
   const [showSubcategoryOptions, setShowSubcategoryOptions] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const auth = getAuth();
   const db = getFirestore();
@@ -37,8 +41,22 @@ const CreateHog = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImages([...images, ...result.selected]);
+      setImages([...images, ...result.assets.map(asset => ({ uri: asset.uri }))]);
     }
+  };
+
+  const compressImage = async (uri) => {
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return manipResult.uri;
+  };
+
+  const handleImagePress = (image) => {
+    setSelectedImage(image);
+    setIsModalVisible(true);
   };
 
   const handleSubmit = async () => {
@@ -48,47 +66,68 @@ const CreateHog = ({ navigation }) => {
       const imageUrls = [];
 
       for (let image of images) {
+        if (!image.uri) {
+          console.error('Image URI is empty:', image);
+          Alert.alert('Error', 'One of the selected images has an invalid URI. Please try again.');
+          setUploading(false);
+          return;
+        }
+
         try {
-          const response = await fetch(image.uri);
+          const compressedUri = await compressImage(image.uri);
+          console.log(`Uploading image: ${compressedUri}`);
+          const response = await fetch(compressedUri);
           const blob = await response.blob();
           const storageRef = ref(storage, `hogImages/${user.uid}/${Date.now()}.jpg`);
           await uploadBytes(storageRef, blob);
           const imageUrl = await getDownloadURL(storageRef);
           imageUrls.push(imageUrl);
+          console.log(`Uploaded image URL: ${imageUrl}`);
         } catch (error) {
           console.error('Error uploading image:', error);
           Alert.alert('Error', 'There was an issue uploading an image. Please try again.');
+          setUploading(false);
+          return;
         }
       }
 
-      const newDoc = {
-        userId: user.uid,
-        category: category || '',
-        subcategory: subcategory || '',
-        make: make || '',
-        model: model || '',
-        mileage: mileage || '',
-        color: color || '',
-        price: price || 0,
-        description: description || '',
-        imageUrls: imageUrls || [],
-        location: location || '',
-        phone: phone || '',
-        email: email || '',
-        gearAccessoryName: gearAccessoryName || '',
-        createdAt: serverTimestamp()
-      };
+      const docRef = doc(db, 'hogs', user.uid);
+      const docSnap = await getDoc(docRef);
 
-      console.log('Creating document with data:', newDoc);
+      if (!docSnap.exists()) {
+        const newDoc = {
+          userId: user.uid,
+          category: category || '',
+          subcategory: subcategory || '',
+          make: make || '',
+          model: model || '',
+          mileage: mileage || '',
+          color: color || '',
+          price: price || 0,
+          description: description || '',
+          imageUrls: imageUrls || [],
+          location: location || '',
+          zipCode: zipCode || '',
+          phone: phone || '',
+          email: email || '',
+          gearAccessoryName: gearAccessoryName || '',
+          createdAt: serverTimestamp()
+        };
 
-      try {
-        await addDoc(collection(db, 'hogs'), newDoc);
-        setUploading(false);
-        Alert.alert('Success', 'Listing created successfully!');
-        navigation.navigate('HogHub');
-      } catch (error) {
-        console.error('Error creating listing:', error);
-        Alert.alert('Error', 'There was an issue creating the listing. Please try again.');
+        console.log('Creating document with data:', newDoc);
+
+        try {
+          await addDoc(collection(db, 'hogs'), newDoc);
+          setUploading(false);
+          Alert.alert('Success', 'Listing created successfully!');
+          navigation.navigate('HogHub');
+        } catch (error) {
+          console.error('Error creating listing:', error);
+          Alert.alert('Error', 'There was an issue creating the listing. Please try again.');
+          setUploading(false);
+        }
+      } else {
+        console.log('Document already exists');
         setUploading(false);
       }
     } else {
@@ -219,6 +258,7 @@ const CreateHog = ({ navigation }) => {
                 onPress={() => {
                   setCategory(option);
                   setShowSubcategoryOptions(true);
+                  setSubcategory('');
                 }}
               >
                 <Text style={styles.optionText}>{option}</Text>
@@ -234,11 +274,11 @@ const CreateHog = ({ navigation }) => {
             keyboardType="numeric"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { height: 100 }]}
             placeholder="Description"
             value={description}
             onChangeText={setDescription}
-            maxLength={350}
+            multiline
           />
           <TextInput
             style={styles.input}
@@ -248,14 +288,20 @@ const CreateHog = ({ navigation }) => {
           />
           <TextInput
             style={styles.input}
-            placeholder="Phone # (Optional)"
+            placeholder="Zip Code"
+            value={zipCode}
+            onChangeText={setZipCode}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Phone"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
           <TextInput
             style={styles.input}
-            placeholder="Email (Optional)"
+            placeholder="Email (contact information for the seller)"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -264,9 +310,20 @@ const CreateHog = ({ navigation }) => {
             Note: <Text onPress={() => navigation.navigate('RideScoutDisclaimer')} style={styles.linkText}>This post is public, users will be able to view your profile and message you once this is posted.</Text>
           </Text>
           <Button title="Pick Images (up to 12)" onPress={pickImages} />
-          {images.map((image, index) => (
-            <Image key={index} source={{ uri: image.uri }} style={styles.image} />
-          ))}
+          <View style={styles.imageGrid}>
+            {images.map((image, index) => (
+              <TouchableOpacity key={index} onPress={() => handleImagePress(image)}>
+                <Image source={{ uri: image.uri }} style={styles.thumbnail} />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Modal visible={isModalVisible} transparent={true}>
+            <View style={styles.modalBackground}>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.fullImageContainer}>
+                <Image source={{ uri: selectedImage?.uri }} style={styles.fullImage} />
+              </TouchableOpacity>
+            </View>
+          </Modal>
           <TouchableOpacity
             style={[styles.submitButton, uploading && styles.disabledButton]}
             onPress={handleSubmit}
@@ -315,6 +372,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 10,
   },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  thumbnail: {
+    width: 100,
+    height: 100,
+    margin: 5,
+  },
   optionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -351,6 +418,27 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: '#777',
+  },
+  descriptionText: {
+    marginBottom: 20,
+    color: '#555',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageContainer: {
+    width: '90%',
+    height: '90%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
 
