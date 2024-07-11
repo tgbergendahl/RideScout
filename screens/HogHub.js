@@ -121,31 +121,34 @@ const HogHub = () => {
         />
         <Text style={styles.username}>{users[item.userId]?.username || 'Unknown User'}</Text>
       </TouchableOpacity>
-      <Text>Category: {item.category}</Text>
-      <Text>Subcategory: {item.subcategory}</Text>
-      <Text>Description: {item.description}</Text>
-      <Text>Make: {item.make}</Text>
-      <Text>Model: {item.model}</Text>
-      <Text>Color: {item.color}</Text>
-      <Text>Price: ${item.price}</Text>
-      <Text>Location: {item.location}</Text>
-      <Text>Phone: {item.phone}</Text>
-      <View style={styles.imageGrid}>
-        {item.imageUrls && item.imageUrls.map((url, index) => (
-          <TouchableOpacity key={index} onPress={() => handleImagePress(url)}>
-            <Image source={{ uri: url }} style={styles.thumbnail} />
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text>Posted on: {item.createdAt ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}</Text>
-      <TouchableOpacity style={styles.messageButton} onPress={() => navigation.navigate('Inbox', { recipientId: item.userId })}>
-        <Text style={styles.messageButtonText}>Message</Text>
-      </TouchableOpacity>
-      {item.userId === auth.currentUser?.uid && (
-        <TouchableOpacity style={styles.deleteButton} onPress={() => promptDeleteHog(item.id)}>
-          <Text style={styles.deleteButtonText}>Delete Listing</Text>
+      <View style={styles.postContent}>
+        <Text>Category: {item.category}</Text>
+        <Text>Subcategory: {item.subcategory}</Text>
+        <Text>Description: {item.description}</Text>
+        <Text>Make: {item.make}</Text>
+        <Text>Model: {item.model}</Text>
+        <Text>Color: {item.color}</Text>
+        <Text>Mileage: {item.mileage}</Text>
+        <View style={styles.imageGrid}>
+          {item.imageUrls && item.imageUrls.map((url, index) => (
+            <TouchableOpacity key={index} onPress={() => handleImagePress(url)}>
+              <Image source={{ uri: url }} style={styles.thumbnail} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.priceText}>${item.price}</Text>
+        <Text>Location: {item.location}</Text>
+        <Text>Phone: {item.phone}</Text>
+        <Text>Posted on: {item.createdAt ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}</Text>
+        <TouchableOpacity style={styles.messageButton} onPress={() => navigation.navigate('Inbox', { recipientId: item.userId })}>
+          <Text style={styles.messageButtonText}>Message</Text>
         </TouchableOpacity>
-      )}
+        {item.userId === auth.currentUser?.uid && (
+          <TouchableOpacity style={styles.deleteButton} onPress={() => promptDeleteHog(item.id)}>
+            <Text style={styles.deleteButtonText}>Delete Listing</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -171,7 +174,7 @@ const HogHub = () => {
       />
       <View style={styles.filterContainer}>
         <ModalDropdown
-          options={['All Categories', 'Vehicle', 'Gear', 'Accessory']}
+          options={['All Categories', 'Vehicle', 'Trailer', 'Gear', 'Accessory']}
           defaultValue="All Categories"
           onSelect={(index, value) => setCategory(value === 'All Categories' ? '' : value)}
           style={styles.dropdown}
@@ -180,7 +183,7 @@ const HogHub = () => {
           dropdownTextStyle={styles.dropdownMenuItemText}
         />
         <ModalDropdown
-          options={['All Subcategories', 'Motorcycle', 'Helmet', 'Jacket', 'Gloves']}
+          options={['All Subcategories', 'Motorcycle', 'Moped', 'Car', 'Truck', 'Boat', 'Other']}
           defaultValue="All Subcategories"
           onSelect={(index, value) => setSubcategory(value === 'All Subcategories' ? '' : value)}
           style={styles.dropdown}
@@ -291,7 +294,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#ccc',
-    width: '90%',
+    width: '96%',
     alignSelf: 'center',
   },
   profileImage: {
@@ -305,6 +308,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  postContent: {
+    width: '95%',
+    alignSelf: 'center',
+  },
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -316,6 +323,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 10,
     marginBottom: 10,
+  },
+  priceText: {
+    fontSize: 20,
+    color: 'green',
+    fontWeight: 'bold',
+    marginTop: 10,
   },
   messageButton: {
     backgroundColor: '#000',
