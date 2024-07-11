@@ -159,12 +159,12 @@ const HogHub = () => {
           <Text style={styles.buttonText}>Create Hog</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('RideScoutStore')}>
-          <Icon name="shopping-cart" size={20} color="#000" />
+          <Icon name="shopping-cart" size={20} color="#fff" />
           <Text style={styles.buttonText}>Shop RideScout</Text>
         </TouchableOpacity>
       </View>
       <TextInput
-        style={styles.searchBar}
+        style={[styles.searchBar, { height: 40 }]}
         placeholder="Search listings"
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -174,17 +174,19 @@ const HogHub = () => {
           options={['All Categories', 'Vehicle', 'Gear', 'Accessory']}
           defaultValue="All Categories"
           onSelect={(index, value) => setCategory(value === 'All Categories' ? '' : value)}
-          style={[styles.dropdown, { backgroundColor: '#ccc' }]}
+          style={styles.dropdown}
           textStyle={styles.dropdownText}
           dropdownStyle={styles.dropdownMenu}
+          dropdownTextStyle={styles.dropdownMenuItemText}
         />
         <ModalDropdown
           options={['All Subcategories', 'Motorcycle', 'Helmet', 'Jacket', 'Gloves']}
           defaultValue="All Subcategories"
           onSelect={(index, value) => setSubcategory(value === 'All Subcategories' ? '' : value)}
-          style={[styles.dropdown, { backgroundColor: '#ccc' }]}
+          style={styles.dropdown}
           textStyle={styles.dropdownText}
           dropdownStyle={styles.dropdownMenu}
+          dropdownTextStyle={styles.dropdownMenuItemText}
         />
       </View>
       {loading ? (
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     borderRadius: 5,
   },
   buttonText: {
@@ -268,14 +270,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     width: '45%',
+    backgroundColor: '#fff',
   },
   dropdownText: {
     fontSize: 14,
-    color: '#00',
+    color: '#000',
   },
   dropdownMenu: {
     borderRadius: 5,
     marginTop: 2,
+  },
+  dropdownMenuItemText: {
+    color: '#000',
+    fontSize: 14,
   },
   hogItem: {
     backgroundColor: '#fff',
@@ -284,6 +291,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#ccc',
+    width: '90%',
+    alignSelf: 'center',
   },
   profileImage: {
     width: 50,
