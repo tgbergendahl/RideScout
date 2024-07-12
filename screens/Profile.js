@@ -7,7 +7,7 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
-import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
+import { getUserBadge } from '../utils/getUserBadge';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -194,14 +194,19 @@ const Profile = () => {
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('UpgradeAccount')} style={styles.upgradeAccountButton}>
-        <Text style={styles.upgradeAccountButtonText}>Upgrade Account</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('UpgradeAccount')} style={styles.upgradeAccountButton}>
+          <Text style={styles.upgradeAccountButtonText}>Upgrade Account</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Inboxes')} style={styles.messagesButton}>
+          <Text style={styles.messagesButtonText}>Messages</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
-        scrollEnabled={false} // Disable FlatList's own scrolling to make ScrollView handle it
+        scrollEnabled={false}
       />
     </ScrollView>
   );
@@ -302,6 +307,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   upgradeAccountButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  messagesButton: {
+    backgroundColor: '#fff',
+    borderColor: '#000',
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  messagesButtonText: {
     color: '#000',
     fontWeight: 'bold',
     textAlign: 'center',
