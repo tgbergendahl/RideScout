@@ -33,6 +33,7 @@ import ProductDetail from './screens/ProductDetail';
 import RideScoutDisclaimer from './screens/RideScoutDisclaimer';
 import PaymentScreen from './screens/PaymentScreen';
 import ShopRideScout from './screens/ShopRideScout';
+import Inboxes from './screens/Inboxes';
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -101,6 +102,7 @@ export default function App() {
               <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
               <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
               <Stack.Screen name="ShopRideScout" component={ShopRideScout} />
+              <Stack.Screen name="Inboxes" component={Inboxes} />
             </Stack.Navigator>
           </NavigationContainer>
         </StripeProvider>
