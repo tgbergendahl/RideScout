@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Button, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { fetchProductDetails, createOrder, fetchStoreId, fetchProductVariants } from '../api/printful';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripe, CardField } from '@stripe/stripe-react-native';
 
 const ProductDetail = ({ route }) => {
     const { product } = route.params;
@@ -16,6 +16,12 @@ const ProductDetail = ({ route }) => {
     const [storeId, setStoreId] = useState(null);
     const [variants, setVariants] = useState(product.variants || []);
     const [message, setMessage] = useState('');
+    const [recipientName, setRecipientName] = useState('');
+    const [address, setAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [state, setState] = useState('');
+    const [country, setCountry] = useState('');
+    const [zip, setZip] = useState('');
 
     const stripe = useStripe();
 
@@ -70,7 +76,7 @@ const ProductDetail = ({ route }) => {
 
     const fetchPaymentIntentClientSecret = async () => {
         try {
-            const response = await fetch('http://localhost:3000/create-payment-intent', {
+            const response = await fetch('http://[2600:8805:dc88:4f00:1996:6770:3a18:49a0]:3000/create-payment-intent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -92,7 +98,7 @@ const ProductDetail = ({ route }) => {
         const { error, paymentIntent } = await stripe.confirmPayment(clientSecret, {
             type: 'Card',
             billingDetails: {
-                name: 'Customer Name',
+                name: recipientName,
                 email: 'customer@example.com',
             },
         });
@@ -116,12 +122,12 @@ const ProductDetail = ({ route }) => {
 
             const orderData = {
                 recipient: {
-                    name: 'Customer Name',
-                    address1: '123 Main St',
-                    city: 'City',
-                    state_code: 'CA',
-                    country_code: 'US',
-                    zip: '90210'
+                    name: recipientName,
+                    address1: address,
+                    city: city,
+                    state_code: state,
+                    country_code: country,
+                    zip: zip
                 },
                 items: [
                     {
@@ -144,38 +150,105 @@ const ProductDetail = ({ route }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <Image source={{ uri: product.thumbnail_url }} style={styles.image} />
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productPrice}>${price}</Text>
-            <Text style={styles.productDescription}>{product.description}</Text>
-            <Text style={styles.label}>Select Size:</Text>
-            <View style={styles.sizeContainer}>
-                {variants && variants.map((variant, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={[
-                            styles.sizeBox,
-                            selectedSize === variant.size && styles.selectedSizeBox
-                        ]}
-                        onPress={() => setSelectedSize(variant.size)}
-                    >
-                        <Text style={[
-                            styles.sizeText,
-                            selectedSize === variant.size && styles.selectedSizeText
-                        ]}>{variant.size}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-            <Button title="Pay with Stripe" onPress={handlePayment} />
-            {message ? <Text>{message}</Text> : null}
-        </View>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+            <ScrollView contentContainerStyle={styles.container}>
+                <Image source={{ uri: product.thumbnail_url }} style={styles.image} />
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productPrice}>${price}</Text>
+                <Text style={styles.productDescription}>{product.description}</Text>
+                <Text style={styles.label}>Select Size:</Text>
+                <View style={styles.sizeContainer}>
+                    {variants && variants.map((variant, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={[
+                                styles.sizeBox,
+                                selectedSize === variant.size && styles.selectedSizeBox
+                            ]}
+                            onPress={() => setSelectedSize(variant.size)}
+                        >
+                            <Text style={[
+                                styles.sizeText,
+                                selectedSize === variant.size && styles.selectedSizeText
+                            ]}>{variant.size}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+                <Text style={styles.label}>Recipient Name:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Recipient Name"
+                    value={recipientName}
+                    onChangeText={setRecipientName}
+                />
+                <Text style={styles.label}>Address:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Address"
+                    value={address}
+                    onChangeText={setAddress}
+                />
+                <Text style={styles.label}>City:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="City"
+                    value={city}
+                    onChangeText={setCity}
+                />
+                <Text style={styles.label}>State:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="State"
+                    value={state}
+                    onChangeText={setState}
+                />
+                <Text style={styles.label}>Country:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Country"
+                    value={country}
+                    onChangeText={setCountry}
+                />
+                <Text style={styles.label}>Zip:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Zip"
+                    value={zip}
+                    onChangeText={setZip}
+                />
+                <View style={{ height: 200, marginTop: 20, width: '100%' }}>
+                    <CardField
+                        postalCodeEnabled={true}
+                        placeholder={{
+                            number: '4242 4242 4242 4242',
+                        }}
+                        cardStyle={{
+                            backgroundColor: '#FFFFFF',
+                            textColor: '#000000',
+                        }}
+                        style={{
+                            width: '100%',
+                            height: 50,
+                            marginVertical: 30,
+                        }}
+                    />
+                </View>
+                <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
+                    <Text style={styles.payButtonText}>Pay with Stripe</Text>
+                </TouchableOpacity>
+                {message ? <Text>{message}</Text> : null}
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
         backgroundColor: '#fff',
     },
@@ -221,6 +294,26 @@ const styles = StyleSheet.create({
     },
     selectedSizeText: {
         color: '#fff',
+    },
+    input: {
+        height: 40,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        paddingLeft: 8,
+        marginBottom: 20,
+        borderRadius: 5,
+    },
+    payButton: {
+        backgroundColor: '#000',
+        padding: 15,
+        borderRadius: 5,
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    payButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
 });
 

@@ -8,6 +8,7 @@ import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
 import { deletePost } from '../api/posts';
 import { likePost } from '../api/like';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const FeaturedRides = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
@@ -48,10 +49,7 @@ const FeaturedRides = ({ navigation }) => {
   };
 
   const fetchUserData = async (posts) => {
-    console.log("Fetching user data...");
     const userIds = [...new Set(posts.map(post => post.userId).filter(userId => userId))];
-    console.log("User IDs: ", userIds);
-
     const userPromises = userIds.map(userId => getDoc(doc(db, 'RideScout', 'Data', 'Users', userId)));
     const userDocs = await Promise.all(userPromises);
 
@@ -62,7 +60,6 @@ const FeaturedRides = ({ navigation }) => {
       }
     });
 
-    console.log("Fetched users data: ", usersData);
     setUsers(usersData);
   };
 
@@ -101,7 +98,14 @@ const FeaturedRides = ({ navigation }) => {
             style={styles.profileImage}
           />
         )}
-        <Text style={styles.username}>{users[item.userId]?.username || 'User not found'}</Text>
+        <View style={styles.usernameContainer}>
+          <Text style={styles.username}>
+            {users[item.userId]?.username || 'User not found'}
+          </Text>
+          {users[item.userId] && (
+            <Image source={getUserBadge(users[item.userId])} style={styles.badgeImage} />
+          )}
+        </View>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       {item.imageUrls && item.imageUrls.length > 0 ? (
@@ -215,9 +219,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   username: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
   postContent: {
     fontSize: 16,

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import defaultProfile from '../assets/defaultProfile.png';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const Following = ({ route, navigation }) => {
   const { userId } = route.params;
@@ -17,17 +18,14 @@ const Following = ({ route, navigation }) => {
 
   const fetchFollowing = async () => {
     try {
-      console.log('Fetching following for user:', userId);
       const userRef = doc(db, 'RideScout', 'Data', 'Users', userId);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
         const followingArray = userDoc.data().followingArray || [];
-        console.log('Following array:', followingArray);
         const validFollowingArray = followingArray.filter(id => id); // Filter out any empty strings
         setFollowing(validFollowingArray);
         await fetchUserData(validFollowingArray);
       } else {
-        console.log('No such document!');
         setLoading(false);
       }
     } catch (error) {
@@ -38,7 +36,6 @@ const Following = ({ route, navigation }) => {
 
   const fetchUserData = async (userIds) => {
     try {
-      console.log('Fetching user data for IDs:', userIds);
       const userPromises = userIds.map(id => getDoc(doc(db, 'RideScout', 'Data', 'Users', id)));
       const userDocs = await Promise.all(userPromises);
 
@@ -49,7 +46,6 @@ const Following = ({ route, navigation }) => {
         }
       });
 
-      console.log('Fetched user data:', usersData);
       setUsers(usersData);
       setLoading(false);
     } catch (error) {
@@ -75,7 +71,12 @@ const Following = ({ route, navigation }) => {
             onError={() => console.log('Error loading profile picture for', users[item]?.username || 'Unknown User')}
           />
         )}
-        <Text>{users[item]?.username || 'Unknown User'}</Text>
+        <View style={styles.usernameContainer}>
+          <Text>{users[item]?.username || 'Unknown User'}</Text>
+          {users[item] && (
+            <Image source={getUserBadge(users[item])} style={styles.badgeImage} />
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -112,6 +113,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 10,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
 });
 

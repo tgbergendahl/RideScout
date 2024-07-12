@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import defaultProfile from '../assets/defaultProfile.png';
 import { likePost } from '../api/like';
 import { followUser, unfollowUser } from '../api/follow';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const RiderProfile = ({ route, navigation }) => {
   const { userId } = route.params;
@@ -60,7 +61,7 @@ const RiderProfile = ({ route, navigation }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchRiderData(); // Removed .then() since fetchRiderData doesn't return a promise
+    fetchRiderData();
     setRefreshing(false);
   };
 
@@ -72,7 +73,7 @@ const RiderProfile = ({ route, navigation }) => {
         await followUser(userId);
       }
       setIsFollowing(!isFollowing);
-      fetchRiderData(); // Ensure profile data is updated
+      fetchRiderData();
     } catch (error) {
       Alert.alert('Error', `There was an issue updating the follow status: ${error.message}`);
     }
@@ -131,7 +132,10 @@ const RiderProfile = ({ route, navigation }) => {
         source={rider.profileImage ? { uri: rider.profileImage } : defaultProfile}
         style={styles.profileImage}
       />
-      <Text style={styles.username}>{rider.username}</Text>
+      <View style={styles.usernameContainer}>
+        <Text style={styles.username}>{rider.username}</Text>
+        <Image source={getUserBadge(rider)} style={styles.badgeImage} />
+      </View>
       <Text style={styles.bio}>{rider.bio}</Text>
       <View style={styles.followContainer}>
         <TouchableOpacity onPress={() => navigation.navigate('Followers', { userId: rider.id })}>
@@ -173,6 +177,16 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     alignSelf: 'center',
     marginBottom: 10,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
   username: {
     fontSize: 24,

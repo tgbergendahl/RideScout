@@ -8,13 +8,15 @@ import { getAuth } from 'firebase/auth';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
 import ModalDropdown from 'react-native-modal-dropdown';
+import { getUserBadge } from '../utils/getUserBadge';  // Import the utility function
 
 const HogHub = () => {
   const [hogs, setHogs] = useState([]);
   const [users, setUsers] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredHogs, setFilteredHogs] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
@@ -76,9 +78,14 @@ const HogHub = () => {
     setFilteredHogs(filtered);
   }, [searchQuery, hogs, category, subcategory]);
 
-  const handleImagePress = (image) => {
-    setSelectedImage(image);
+  const handleImagePress = (imageUrls, index) => {
+    setSelectedImages(imageUrls);
+    setSelectedImageIndex(index);
     setIsModalVisible(true);
+  };
+
+  const handleImageClose = () => {
+    setIsModalVisible(false);
   };
 
   const handleDeleteHog = async (hogId) => {
@@ -119,7 +126,12 @@ const HogHub = () => {
           source={users[item.userId]?.profileImage ? { uri: users[item.userId].profileImage } : defaultProfile}
           style={styles.profileImage}
         />
-        <Text style={styles.username}>{users[item.userId]?.username || 'Unknown User'}</Text>
+        <Text style={styles.username}>
+          {users[item.userId]?.username || 'Unknown User'}
+          {users[item.userId] && (
+            <Image source={getUserBadge(users[item.userId])} style={styles.checkmark} />
+          )}
+        </Text>
       </TouchableOpacity>
       <View style={styles.postContent}>
         <Text>Category: {item.category}</Text>
@@ -131,7 +143,7 @@ const HogHub = () => {
         <Text>Mileage: {item.mileage}</Text>
         <View style={styles.imageGrid}>
           {item.imageUrls && item.imageUrls.map((url, index) => (
-            <TouchableOpacity key={index} onPress={() => handleImagePress(url)}>
+            <TouchableOpacity key={index} onPress={() => handleImagePress(item.imageUrls, index)}>
               <Image source={{ uri: url }} style={styles.thumbnail} />
             </TouchableOpacity>
           ))}
@@ -204,10 +216,24 @@ const HogHub = () => {
       )}
       <Modal visible={isModalVisible} transparent={true}>
         <View style={styles.modalBackground}>
-          <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.closeButton}>
+          <TouchableOpacity onPress={handleImageClose} style={styles.closeButton}>
             <Icon name="times-circle" size={30} color="#fff" />
           </TouchableOpacity>
-          <Image source={{ uri: selectedImage }} style={styles.modalImage} />
+          {selectedImages.length > 0 && (
+            <Image source={{ uri: selectedImages[selectedImageIndex] }} style={styles.modalImage} />
+          )}
+          <View style={styles.modalNavigation}>
+            <TouchableOpacity
+              onPress={() => setSelectedImageIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : selectedImages.length - 1))}
+            >
+              <Icon name="chevron-left" size={30} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedImageIndex((prevIndex) => (prevIndex < selectedImages.length - 1 ? prevIndex + 1 : 0))}
+            >
+              <Icon name="chevron-right" size={30} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -308,6 +334,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  checkmark: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    marginLeft: 5,
+  },
   postContent: {
     width: '95%',
     alignSelf: 'center',
@@ -360,7 +392,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 20,
+    top: 45,
     right: 20,
     zIndex: 1,
   },
@@ -368,6 +400,14 @@ const styles = StyleSheet.create({
     width: '80%',
     height: '80%',
     resizeMode: 'contain',
+  },
+  modalNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    position: 'absolute',
+    bottom: 150,
+    paddingHorizontal: 20,
   },
 });
 

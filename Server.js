@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const stripe = require('stripe')('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');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
@@ -14,6 +14,9 @@ app.post('/create-payment-intent', async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: 'usd',
+      automatic_payment_methods: {
+        enabled: true,
+      },
     });
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {

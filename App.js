@@ -1,4 +1,3 @@
-// App.js
 import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -33,6 +32,7 @@ import RideScoutStore from './screens/RideScoutStore';
 import ProductDetail from './screens/ProductDetail';
 import RideScoutDisclaimer from './screens/RideScoutDisclaimer';
 import PaymentScreen from './screens/PaymentScreen';
+import ShopRideScout from './screens/ShopRideScout';
 
 import { AuthProvider } from './contexts/AuthContext';
 import './firebaseConfig';
@@ -100,6 +100,7 @@ export default function App() {
               <Stack.Screen name="ProductDetail" component={ProductDetail} />
               <Stack.Screen name="RideScoutDisclaimer" component={RideScoutDisclaimer} />
               <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
+              <Stack.Screen name="ShopRideScout" component={ShopRideScout} />
             </Stack.Navigator>
           </NavigationContainer>
         </StripeProvider>

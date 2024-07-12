@@ -3,6 +3,7 @@ import { View, FlatList, Text, StyleSheet, Image, TextInput, TouchableOpacity, R
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import defaultProfile from '../assets/defaultProfile.png';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const RiderDirectory = ({ navigation }) => {
   const [riders, setRiders] = useState([]);
@@ -86,7 +87,10 @@ const RiderDirectory = ({ navigation }) => {
                     onError={() => console.log('Error loading profile picture for', item.username)}
                   />
                 )}
-                <Text>{item.username}</Text>
+                <View style={styles.usernameContainer}>
+                  <Text style={styles.username}>{item.username}</Text>
+                  <Image source={getUserBadge(users[item.id])} style={styles.badgeImage} />
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -120,6 +124,19 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 10,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
 });
 

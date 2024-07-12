@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndi
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import defaultProfile from '../assets/defaultProfile.png';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const Followers = ({ route, navigation }) => {
   const { userId } = route.params;
@@ -70,7 +71,12 @@ const Followers = ({ route, navigation }) => {
             onError={() => console.log('Error loading profile picture for', users[item]?.username || 'Unknown User')}
           />
         )}
-        <Text>{users[item]?.username || 'Unknown User'}</Text>
+        <View style={styles.usernameContainer}>
+          <Text>{users[item]?.username || 'Unknown User'}</Text>
+          {users[item] && (
+            <Image source={getUserBadge(users[item])} style={styles.badgeImage} />
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -107,6 +113,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 10,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
 });
 

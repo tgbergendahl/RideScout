@@ -7,6 +7,7 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import logo from '../assets/RideScout.jpg';
 import defaultProfile from '../assets/defaultProfile.png';
+import { getUserBadge } from '../utils/getUserBadge'; // Import the getUserBadge function
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -116,7 +117,12 @@ const Profile = () => {
           source={userData?.profileImage ? { uri: userData.profileImage } : defaultProfile}
           style={styles.profileImageSmall}
         />
-        <Text style={styles.usernameSmall}>{userData?.username || 'User not found'}</Text>
+        <View style={styles.usernameContainer}>
+          <Text style={styles.usernameSmall}>{userData?.username || 'User not found'}</Text>
+          {userData && (
+            <Image source={getUserBadge(userData)} style={styles.badgeImage} />
+          )}
+        </View>
       </View>
       <Text style={styles.postContent}>{item.content}</Text>
       {item.imageUrls && item.imageUrls.length > 0 ? (
@@ -161,7 +167,10 @@ const Profile = () => {
       {userData && (
         <>
           <Image source={userData.profileImage ? { uri: userData.profileImage } : defaultProfile} style={styles.profileImage} />
-          <Text style={styles.username}>{userData.username}</Text>
+          <View style={styles.usernameContainer}>
+            <Text style={styles.username}>{userData.username}</Text>
+            <Image source={getUserBadge(userData)} style={styles.badgeImage} />
+          </View>
           {!userData.hideEmail && <Text style={styles.email}>{currentUser.email}</Text>}
           <Text style={styles.bio}>{userData.bio || 'This user has no bio'}</Text>
           <View style={styles.followContainer}>
@@ -317,6 +326,16 @@ const styles = StyleSheet.create({
   usernameSmall: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeImage: {
+    width: 16,
+    height: 16,
+    marginLeft: 5,
   },
   postContent: {
     fontSize: 16,
