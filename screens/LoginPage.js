@@ -26,7 +26,7 @@ const LoginPage = ({ navigation }) => {
       navigation.replace('MainTabs');
     } catch (error) {
       console.error('Error logging in:', error);
-      Alert.alert('Error', 'There was an issue logging in. Please try again later.');
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -55,6 +55,10 @@ const LoginPage = ({ navigation }) => {
           <Button
             title="Don't have an account? Sign Up"
             onPress={() => navigation.navigate('SignupPage')}
+          />
+          <Button
+            title="Forgot Password?"
+            onPress={() => navigation.navigate('ForgotPasswordPage')}
           />
         </View>
       </TouchableWithoutFeedback>

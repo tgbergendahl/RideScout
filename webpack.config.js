@@ -1,4 +1,5 @@
 const createExpoWebpackConfigAsync = require('@expo/webpack-config');
+const webpack = require('webpack');
 
 module.exports = async function(env, argv) {
   const config = await createExpoWebpackConfigAsync(env, argv);
@@ -6,8 +7,7 @@ module.exports = async function(env, argv) {
     ...config.resolve.alias,
     'react-native$': 'react-native-web',
     'react-native/Libraries/Utilities/Platform': 'react-native-web/dist/exports/Platform',
-    'react-native/Libraries/Components/TextInput': 'react-native-web/dist/exports/TextInput',
-    'react-native/Libraries/Components/TextInput/TextInputState': require.resolve('./TextInputState')
+    'react-native/Libraries/Components/TextInput': 'react-native-web/dist/exports/TextInput'
   };
   config.resolve.fallback = {
     "crypto": require.resolve("crypto-browserify"),
@@ -20,5 +20,13 @@ module.exports = async function(env, argv) {
     "path": require.resolve("path-browserify"),
     "fs": false
   };
+
+  // Ignore TextInputState module for web build
+  config.plugins.push(
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^react-native\/Libraries\/Components\/TextInput\/TextInputState$/
+    })
+  );
+
   return config;
 };

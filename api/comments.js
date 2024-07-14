@@ -1,5 +1,5 @@
 import { db } from '../firebaseConfig';
-import { collection, addDoc, query, where, getDocs, doc, updateDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, doc, updateDoc, deleteDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
 import { sendNotification } from './notifications';
 
 // Function to get comments for a post
@@ -52,5 +52,22 @@ export const likeComment = async (commentId, userId) => {
     if (commentData.userId !== userId) {
       await sendNotification(commentData.userId, userId, 'like', commentData.postId, commentId);
     }
+  }
+};
+
+// Function to delete a comment
+export const deleteComment = async (commentId) => {
+  const commentRef = doc(db, 'RideScout/Data/Comments', commentId);
+  await deleteDoc(commentRef);
+
+  // You might also want to update the related post's commentsCount and comments array
+  const commentSnapshot = await getDoc(commentRef);
+  if (commentSnapshot.exists()) {
+    const commentData = commentSnapshot.data();
+    const postRef = doc(db, 'RideScout/Data/Posts', commentData.postId);
+    await updateDoc(postRef, {
+      commentsCount: increment(-1),
+      comments: arrayRemove(commentId),
+    });
   }
 };

@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth, initializeAuth, getReactNativePersistence, indexedDBLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7fPS88Qiq5Q_jboSPJty21h605HZ33Nw",
@@ -21,9 +21,16 @@ let storage;
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-  });
+
+  if (typeof window !== 'undefined') {
+    auth = getAuth(app);
+    auth.setPersistence(indexedDBLocalPersistence);  // or browserSessionPersistence
+  } else {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+  }
+
   storage = getStorage(app);
   console.log("Firebase initialized successfully");
 } catch (error) {
