@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "RideScout",
-    "slug": "ridescout",
+    "slug": "RideScout",
     "platforms": ["ios", "android", "web"],
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,12 +17,15 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "ios": {
+      "bundleIdentifier": "com.ridescout.app"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "66f6d9f9-978a-497c-8e06-1787418056eb"
       }
     }
   }

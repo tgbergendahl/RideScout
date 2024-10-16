@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.1",
-    "@expo/webpack-config": "~19.0.1",
+    "@expo/webpack-config": "^19.0.1",
     "@firebase/firestore": "^4.6.3",
     "@firebase/storage": "^0.12.5",
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -33,6 +33,7 @@
     "expo-image-picker": "~15.0.7",
     "expo-mail-composer": "~13.0.1",
     "expo-status-bar": "~1.12.1",
+    "expo-updates": "~0.25.27",
     "express": "^4.19.2",
     "firebase": "^10.12.3",
     "firebase-admin": "^12.2.0",
@@ -75,6 +76,6 @@
     "stream-http": "^3.2.0",
     "webpack": "^5.93.0"
   },
-  "homepage": "https://yourusername.github.io/RideScout",
+  "homepage": "https://RideScout.github.io/RideScout",
   "private": true
 }
